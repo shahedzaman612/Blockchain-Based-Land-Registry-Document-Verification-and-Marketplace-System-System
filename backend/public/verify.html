@@ -32,9 +32,9 @@
       <label>Document Type:</label>
       <select name="docType" required>
         <option value="">-- Select Document Type --</option>
-        <option value="Dolil">Dolil</option>
-        <option value="Porcha">Porcha</option>
-        <option value="DCR">DCR</option>
+        <option value="dolil">Dolil</option>
+        <option value="porcha">Porcha</option>
+        <option value="dcr">DCR</option>
       </select>
 
       <label>Upload Document:</label>
@@ -87,6 +87,7 @@
       }
 
       const form = document.getElementById("verifyForm");
+      console.log(form.value);
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const formData = new FormData(form);
@@ -107,9 +108,7 @@
           const data = await response.json();
           if (data.authentic !== undefined) {
             if (data.authentic) {
-              showPopup(
-                `✅ Document is authentic! Found in Block #${data.block.blockNumber}`
-              );
+              showPopup(`✅ Document is authentic! Found in a Block`);
             } else {
               showPopup("❌ Document is NOT authentic.", true);
             }

@@ -3,13 +3,13 @@
     "username": "Shahed",
     "nid": "123456789",
     "password": "$2b$10$aUIhwe0Y9pgjcp7jnVCCPevAI475CA4twWEHVK2oRAXy5OL2b6pvC",
-    "role": "user"
+    "role": "admin"
   },
   {
     "username": "Rafi",
     "nid": "789456123",
     "password": "$2b$10$7mH5o/sZhfaD3gQyrKKsyuZ9IQhP77zeFKxfnBEd6o/zkKgcoYX.e",
-    "role": "user"
+    "role": "miner"
   },
   {
     "username": "yunose",

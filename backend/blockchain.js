@@ -84,7 +84,13 @@ function saveBlock(block) {
 
 // Verify document by hash and doc type
 function verifyDocument(fileHash, docType) {
-  return blockchain.find((block) => block[`${docType}Hash`] === fileHash);
+  const key = docType.toLowerCase() + "Hash"; // e.g., "dolilHash", "porchaHash", "dcrHash"
+  for (const block of blockchain) {
+    if (block[key] === fileHash) {
+      return block;
+    }
+  }
+  return null;
 }
 
 module.exports = {
