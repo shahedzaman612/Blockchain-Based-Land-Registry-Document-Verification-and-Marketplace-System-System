@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>My Lands</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script>
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("❌ You must be logged in.");
+        window.location.href = "login.html";
+      }
+    </script>
+    <style>
+      #particles-js {
+        position: fixed;
+        z-index: -1;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="particles-js"></div>
+    <h1>My Submitted or Owned Lands</h1>
+
+    <div id="landList" class="block-container"></div>
+
+    <h2>Messages</h2>
+    <div id="messagesList" class="block-container"></div>
+
+    <a href="index.html" class="back-button">⬅️ Back to Home</a>
+
+    <script>
+      particlesJS("particles-js", {
+        particles: {
+          number: { value: 80, density: { enable: true, value_area: 800 } },
+          color: { value: "#ff6347" },
+          shape: { type: "circle" },
+          opacity: { value: 0.5 },
+          size: { value: 3 },
+          line_linked: {
+            enable: true,
+            distance: 150,
+            color: "#ff6347",
+            opacity: 0.4,
+            width: 1,
+          },
+          move: { enable: true, speed: 2 },
+        },
+        interactivity: {
+          detect_on: "canvas",
+          events: { onhover: { enable: true, mode: "repulse" } },
+          modes: { repulse: { distance: 100 } },
+        },
+      });
+
+      async function fetchMyLands() {
+        const token = localStorage.getItem("token");
+
+        try {
+          const response = await fetch("http://localhost:3000/my-lands", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const lands = await response.json();
+          const list = document.getElementById("landList");
+
+          if (!lands.length) {
+            list.innerHTML = "<p>No lands submitted yet.</p>";
+            return;
+          }
+
+          lands.forEach((land) => {
+            const div = document.createElement("div");
+            div.className = "block-card";
+            div.innerHTML = `
+              <p><strong>Transaction ID:</strong> ${land.transactionId}</p>
+              <p><strong>From:</strong> ${land.from}</p>
+              <p><strong>To:</strong> ${land.to}</p>
+              <p><span class="label">To NID:</span> ${land.toNID}</p>
+              <p><span class="label">DCR Hash:</span> ${land.dcrHash}</p>
+              <p><span class="label">Porcha Hash:</span> ${land.porchaHash}</p>
+              <p><span class="label">Dolil Hash:</span> ${land.dolilHash}</p>
+              <p><strong>Timestamp:</strong> ${new Date(
+                land.timestamp
+              ).toLocaleString()}</p>
+            `;
+            list.appendChild(div);
+          });
+        } catch (err) {
+          alert("❌ Failed to load your lands.");
+        }
+      }
+
+      async function fetchMessages() {
+        const token = localStorage.getItem("token");
+
+        try {
+          const response = await fetch("http://localhost:3000/messages", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const messages = await response.json();
+          const list = document.getElementById("messagesList");
+
+          if (!messages.length) {
+            list.innerHTML = "<p>No new messages.</p>";
+            return;
+          }
+
+          messages.forEach((message) => {
+            const div = document.createElement("div");
+            div.className = "message-card";
+            div.innerHTML = `
+              <p><strong>From:</strong> ${message.buyer}</p>
+              <p><strong>Message:</strong> ${message.message}</p>
+              <p><strong>Timestamp:</strong> ${new Date(
+                message.timestamp
+              ).toLocaleString()}</p>
+            `;
+            list.appendChild(div);
+          });
+        } catch (err) {
+          alert("❌ Failed to load messages.");
+        }
+      }
+
+      fetchMyLands();
+      fetchMessages();
+    </script>
+  </body>
+</html>

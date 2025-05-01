@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h1>Login</h1>
+
+    <form id="loginForm">
+      <label>NID Number:</label>
+      <input type="text" name="nid" required />
+
+      <label>Password:</label>
+      <div class="input-wrapper">
+        <input type="password" name="password" id="passwordField" required />
+        <button type="button" id="togglePassword" class="toggle-password">
+          👁️
+        </button>
+      </div>
+
+      <button type="submit">Login</button>
+      <p>Don't have an account? <a href="register.html">Register</a></p>
+    </form>
+
+    <div id="popup" class="popup"></div>
+
+    <script>
+      const form = document.getElementById("loginForm");
+      const passwordField = document.getElementById("passwordField");
+      const togglePassword = document.getElementById("togglePassword");
+
+      togglePassword.addEventListener("click", () => {
+        const type =
+          passwordField.getAttribute("type") === "password"
+            ? "text"
+            : "password";
+        passwordField.setAttribute("type", type);
+        togglePassword.textContent = type === "password" ? "👁️" : "🙈";
+      });
+
+      function showPopup(message, isError = false) {
+        const popup = document.getElementById("popup");
+        popup.textContent = message;
+        popup.className = "popup show";
+        if (isError) popup.classList.add("error");
+        setTimeout(() => (popup.className = "popup"), 3000);
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const formData = {
+          nid: form.nid.value,
+          password: form.password.value,
+        };
+
+        try {
+          const response = await fetch("http://localhost:3000/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            localStorage.setItem("token", data.token);
+            showPopup("✅ Login successful!");
+            setTimeout(() => {
+              window.location.href = "index.html";
+            }, 1200);
+          } else {
+            showPopup(`❌ ${data.message}`, true);
+          }
+        } catch (err) {
+          showPopup("❌ Login failed", true);
+        }
+      });
+    </script>
+  </body>
+</html>

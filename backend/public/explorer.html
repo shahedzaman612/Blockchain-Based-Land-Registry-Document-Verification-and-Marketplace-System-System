@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Blockchain Explorer</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script>
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("❌ You must be logged in.");
+        window.location.href = "login.html";
+      }
+    </script>
+  </head>
+  <body>
+    <div id="particles-js"></div>
+
+    <h1>Blockchain Explorer</h1>
+
+    <div id="blocks" class="block-container"></div>
+
+    <button id="loadMore" onclick="loadMore()" class="load-more-button">
+      Load More
+    </button>
+
+    <a href="index.html" class="">⬅️ Back to Home</a>
+
+    <div id="popup" class="popup"></div>
+
+    <script>
+      particlesJS("particles-js", {
+        particles: {
+          number: { value: 80, density: { enable: true, value_area: 800 } },
+          color: { value: "#ff6347" },
+          shape: { type: "circle" },
+          opacity: { value: 0.5 },
+          size: { value: 3 },
+          line_linked: {
+            enable: true,
+            distance: 150,
+            color: "#ff6347",
+            opacity: 0.4,
+            width: 1,
+          },
+          move: { enable: true, speed: 2 },
+        },
+        interactivity: {
+          detect_on: "canvas",
+          events: { onhover: { enable: true, mode: "repulse" } },
+          modes: { repulse: { distance: 100 } },
+        },
+      });
+
+      let allBlocks = [];
+      let blocksShown = 0;
+      const pageSize = 5;
+
+      async function loadBlocks() {
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:3000/blocks", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        allBlocks = await response.json();
+        renderBlocks();
+      }
+
+      function renderBlocks() {
+        const blocksDiv = document.getElementById("blocks");
+        const slice = allBlocks.slice(blocksShown, blocksShown + pageSize);
+        slice.forEach((block) => {
+          const blockCard = document.createElement("div");
+          blockCard.className = "block-card";
+          blockCard.innerHTML = `
+            <strong>Block #${block.blockNumber}</strong><br>
+            Transaction ID: ${block.transactionId}<br>
+            From: ${block.from} (NID: ${block.fromNID})<br>
+            To: ${block.to} (NID: ${block.toNID})<br>
+            Timestamp: ${new Date(block.timestamp).toLocaleString()}<br>
+            Hash: ${block.hash}<br>
+          `;
+          blocksDiv.appendChild(blockCard);
+        });
+
+        blocksShown += pageSize;
+        if (blocksShown >= allBlocks.length) {
+          document.getElementById("loadMore").style.display = "none";
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", loadBlocks);
+      function loadMore() {
+        renderBlocks();
+      }
+    </script>
+  </body>
+</html>

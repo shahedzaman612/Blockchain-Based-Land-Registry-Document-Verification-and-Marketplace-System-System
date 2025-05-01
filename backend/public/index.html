@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blockchain Land Registry System</title>
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- Particles.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+  </head>
+
+  <body>
+    <!-- Background Animation -->
+    <div id="particles-js"></div>
+
+    <h1 id="welcomeMessage">Welcome!</h1>
+
+    <div class="button-container">
+      <a href="create.html" id="createButton">➕ Create New Block</a>
+      <a href="verify.html" id="verifyButton">🔍 Verify Document</a>
+      <a href="explorer.html" id="explorerButton">📜 Blockchain Explorer</a>
+      <a href="home.html" id="homeButton">🌍 Explore Lands</a>
+      <a href="submit-land.html" id="submitLandButton">📤 Submit Land</a>
+      <a href="user-dashboard.html" id="userDashboardButton">👤 My Lands</a>
+      <a href="post-ad.html" id="postAdButton">📣 Post Land Ad</a>
+      <a href="miner-dashboard.html" id="minarDashboardButton"
+        >⚒️ Minar Dashboard</a
+      >
+    </div>
+
+    <!-- Admin Dashboard (Hidden for normal users) -->
+    <div id="adminDashboard">
+      <h2>🛠 Admin Dashboard</h2>
+      <div class="block-card">
+        <p>
+          <strong>Total Blocks:</strong>
+          <span id="totalBlocks">Loading...</span>
+        </p>
+        <p>
+          <strong>Total Users:</strong> <span id="totalUsers">Loading...</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Logout Button -->
+    <button class="logout-button" id="logoutButton">Logout</button>
+
+    <!-- Scripts -->
+    <script>
+      // Load particles.js
+      particlesJS("particles-js", {
+        particles: {
+          number: { value: 80, density: { enable: true, value_area: 800 } },
+          color: { value: "#ff6347" },
+          shape: { type: "circle" },
+          opacity: { value: 0.5 },
+          size: { value: 3 },
+          line_linked: {
+            enable: true,
+            distance: 150,
+            color: "#ff6347",
+            opacity: 0.4,
+            width: 1,
+          },
+          move: { enable: true, speed: 2 },
+        },
+        interactivity: {
+          detect_on: "canvas",
+          events: { onhover: { enable: true, mode: "repulse" } },
+          modes: { repulse: { distance: 100 } },
+        },
+      });
+
+      // Token and User Info
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "login.html"; // If not logged in, redirect
+      }
+
+      // Decode JWT
+      function parseJwt(token) {
+        const base64Url = token.split(".")[1];
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split("")
+            .map(function (c) {
+              return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+            })
+            .join("")
+        );
+        return JSON.parse(jsonPayload);
+      }
+
+      try {
+        const userData = parseJwt(token);
+        document.getElementById(
+          "welcomeMessage"
+        ).textContent = `👋 Welcome, ${userData.username}!`;
+
+        // Role-based Access
+        if (userData.role === "user") {
+          document.getElementById("createButton").style.display = "none";
+          document.getElementById("explorerButton").style.display = "none";
+          document.getElementById("adminDashboard").style.display = "none";
+          document.getElementById("minarDashboardButton").style.display =
+            "none";
+        }
+
+        if (userData.role === "miner") {
+          document.getElementById("postAdButton").style.display = "none";
+          document.getElementById("userDashboardButton").style.display = "none";
+          document.getElementById("postAdButton").style.display = "none";
+        }
+
+        if (userData.role === "admin") {
+          document.getElementById("adminDashboard").style.display = "block";
+
+          // Fetch Total Blocks
+          fetch("http://localhost:3000/blocks", {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              document.getElementById("totalBlocks").textContent = data.length;
+            })
+            .catch((error) => {
+              document.getElementById("totalBlocks").textContent = "Error";
+            });
+
+          // Fetch Total Users (if you have /users route)
+          fetch("http://localhost:3000/users", {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              document.getElementById("totalUsers").textContent = data.length;
+            })
+            .catch((error) => {
+              document.getElementById("totalUsers").textContent = "Error";
+            });
+        }
+      } catch (error) {
+        console.error("Failed to parse token", error);
+        localStorage.removeItem("token");
+        window.location.href = "login.html";
+      }
+
+      // Logout Function
+      document.getElementById("logoutButton").addEventListener("click", () => {
+        localStorage.removeItem("token");
+        window.location.href = "login.html";
+      });
+    </script>
+  </body>
+</html>

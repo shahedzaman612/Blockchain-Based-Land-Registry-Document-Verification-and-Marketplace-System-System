@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Land Marketplace</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script>
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("❌ You must be logged in.");
+        window.location.href = "login.html";
+      }
+    </script>
+  </head>
+  <body>
+    <div id="particles-js"></div>
+
+    <h1>Explore Available Land Ads</h1>
+
+    <div id="adsContainer" class="block-container"></div>
+
+    <a href="index.html" class="back-button">⬅️ Back to Home</a>
+
+    <script type="module">
+      // Particle.js setup
+      particlesJS("particles-js", {
+        particles: {
+          number: { value: 80, density: { enable: true, value_area: 800 } },
+          color: { value: "#ff6347" },
+          shape: { type: "circle" },
+          opacity: { value: 0.5 },
+          size: { value: 3 },
+          line_linked: {
+            enable: true,
+            distance: 150,
+            color: "#ff6347",
+            opacity: 0.4,
+            width: 1,
+          },
+          move: { enable: true, speed: 2 },
+        },
+        interactivity: {
+          detect_on: "canvas",
+          events: { onhover: { enable: true, mode: "repulse" } },
+          modes: { repulse: { distance: 100 } },
+        },
+      });
+
+      // Fetch available ads from the server
+      async function fetchAds() {
+        const token = localStorage.getItem("token");
+        try {
+          const response = await fetch("http://localhost:3000/ads", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch ads");
+          }
+
+          const ads = await response.json();
+          const container = document.getElementById("adsContainer");
+
+          if (ads.length === 0) {
+            container.innerHTML = "<p>No land ads available yet.</p>";
+            return;
+          }
+
+          ads.forEach((ad) => {
+            const card = document.createElement("div");
+            card.className = "block-card";
+            card.innerHTML = `
+              <img src="http://localhost:3000${ad.imagePath}" alt="Land Image" style="width:100%; max-height:200px; object-fit:cover;" />
+              <h3>${ad.title}</h3>
+              <p><strong>Price:</strong> ${ad.price} BDT</p>
+              <p>${ad.description}</p>
+              <p><strong>Posted By:</strong> ${ad.postedBy}</p>
+              <button id="buyRequestBtn-${ad.id}">💰 Send Buy Request</button>
+            `;
+            container.appendChild(card);
+
+            // Attach event listener to the button
+            const buyRequestBtn = document.getElementById(
+              `buyRequestBtn-${ad.id}`
+            );
+            buyRequestBtn.addEventListener("click", function () {
+              sendBuyRequest(ad.id);
+            });
+          });
+        } catch (err) {
+          alert("❌ Failed to load ads.");
+          console.error("Error fetching ads:", err);
+        }
+      }
+
+      // Send a buy request for the selected ad
+      async function sendBuyRequest(adId) {
+        const token = localStorage.getItem("token");
+        try {
+          const response = await fetch(
+            `http://localhost:3000/buy-request/${adId}`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          const data = await response.json();
+
+          if (response.ok) {
+            alert(`✅ Buy request sent to the seller of the ad!`);
+          } else {
+            alert(`❌ ${data.message}`);
+          }
+        } catch (error) {
+          alert("❌ Failed to send buy request.");
+          console.error("Error sending buy request:", error);
+        }
+      }
+
+      // Initial call to fetch ads when the page loads
+      fetchAds();
+    </script>
+  </body>
+</html>

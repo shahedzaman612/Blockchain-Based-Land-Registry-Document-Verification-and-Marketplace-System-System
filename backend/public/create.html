@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Create New Block</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+
+    <script>
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("❌ You must be logged in.");
+        window.location.href = "login.html";
+      }
+    </script>
+  </head>
+
+  <body>
+    <div id="particles-js"></div>
+
+    <h1>Create a New Land Transaction Block</h1>
+
+    <form id="createBlockForm" enctype="multipart/form-data">
+      <div class="nav">
+        <a href="index.html" class="back-button">⬅️ Back to Home</a>
+      </div>
+      <label for="fromAddress">From (Seller Name):</label>
+      <input type="text" name="fromAddress" id="fromAddress" required />
+
+      <label for="fromNID">From (Seller NID Number):</label>
+      <input type="text" name="fromNID" id="fromNID" required />
+
+      <label for="toAddress">To (Buyer Name):</label>
+      <input type="text" name="toAddress" id="toAddress" required />
+
+      <label for="toNID">To (Buyer NID Number):</label>
+      <input type="text" name="toNID" id="toNID" required />
+
+      <label for="nonce">Nonce:</label>
+      <input type="text" name="nonce" id="nonce" required />
+
+      <label for="dcr">DCR Document:</label>
+      <input
+        type="file"
+        name="dcr"
+        id="dcr"
+        accept=".png,.jpg,.jpeg,.pdf"
+        required
+      />
+
+      <label for="porcha">Porcha Document:</label>
+      <input
+        type="file"
+        name="porcha"
+        id="porcha"
+        accept=".png,.jpg,.jpeg,.pdf"
+        required
+      />
+
+      <label for="dolil">Dolil Document:</label>
+      <input
+        type="file"
+        name="dolil"
+        id="dolil"
+        accept=".png,.jpg,.jpeg,.pdf"
+        required
+      />
+
+      <button type="submit">Create Block</button>
+    </form>
+
+    <div id="popup" class="popup"></div>
+
+    <script>
+      // Particle animation
+      particlesJS("particles-js", {
+        particles: {
+          number: { value: 80, density: { enable: true, value_area: 800 } },
+          color: { value: "#ff6347" },
+          shape: { type: "circle" },
+          opacity: { value: 0.5 },
+          size: { value: 3 },
+          line_linked: {
+            enable: true,
+            distance: 150,
+            color: "#ff6347",
+            opacity: 0.4,
+            width: 1,
+          },
+          move: { enable: true, speed: 2 },
+        },
+        interactivity: {
+          detect_on: "canvas",
+          events: { onhover: { enable: true, mode: "repulse" } },
+          modes: { repulse: { distance: 100 } },
+        },
+      });
+
+      // Popup feedback
+      function showPopup(message, isError = false) {
+        const popup = document.getElementById("popup");
+        popup.textContent = message;
+        popup.className = "popup show";
+        if (isError) popup.classList.add("error");
+        setTimeout(() => {
+          popup.className = "popup";
+        }, 3000);
+      }
+
+      // Submit logic
+      const form = document.getElementById("createBlockForm"); // This should match the form ID
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const token = localStorage.getItem("token");
+
+        try {
+          const response = await fetch("http://localhost:3000/create-block", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+          });
+
+          const data = await response.json();
+          if (response.ok && data.message) {
+            showPopup(data.message);
+            form.reset();
+          } else {
+            showPopup(data.message || "❌ Could not create block.", true);
+          }
+        } catch (error) {
+          showPopup("❌ An error occurred while creating the block.", true);
+        }
+      });
+    </script>
+  </body>
+</html>

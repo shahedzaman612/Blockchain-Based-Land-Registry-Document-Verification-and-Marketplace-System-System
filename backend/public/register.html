@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h1>Register</h1>
+    <form id="registerForm">
+      <label>Full Name:</label>
+      <input type="text" name="username" required />
+
+      <label>NID Number:</label>
+      <input type="text" name="nid" required />
+
+      <label>Password:</label>
+      <div class="input-wrapper">
+        <input type="password" name="password" id="passwordField" required />
+        <button type="button" id="togglePassword" class="toggle-password">
+          👁️
+        </button>
+        <div id="strengthText" style="margin-top: 5px; font-size: 14px"></div>
+      </div>
+
+      </div>
+      <button type="submit">Register</button>
+      <p>Already have an account? <a href="login.html">Login</a></p>
+    </form>
+
+    <div id="popup" class="popup"></div>
+
+    <script>
+            const form = document.getElementById("registerForm");
+      const passwordField = document.getElementById("passwordField");
+      const togglePassword = document.getElementById("togglePassword");
+
+      // Show/hide password
+      togglePassword.addEventListener("click", () => {
+        const type =
+          passwordField.getAttribute("type") === "password"
+            ? "text"
+            : "password";
+        passwordField.setAttribute("type", type);
+        togglePassword.textContent = type === "password" ? "👁️" : "🙈";
+      });
+
+      // Password strength meter
+      passwordField.addEventListener("input", () => {
+        const strengthText = document.getElementById("strengthText");
+        const password = passwordField.value;
+        const strength = calculatePasswordStrength(password);
+
+        if (strength === "Weak") {
+          strengthText.textContent = "Weak Password 🔴";
+          strengthText.style.color = "red";
+        } else if (strength === "Medium") {
+          strengthText.textContent = "Medium Password 🟠";
+          strengthText.style.color = "orange";
+        } else if (strength === "Strong") {
+          strengthText.textContent = "Strong Password 🟢";
+          strengthText.style.color = "green";
+        } else {
+          strengthText.textContent = "";
+        }
+      });
+
+      function calculatePasswordStrength(password) {
+        let strength = 0;
+        if (password.length >= 8) strength++;
+        if (/[A-Z]/.test(password)) strength++;
+        if (/[0-9]/.test(password)) strength++;
+        if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+        if (strength <= 1) return "Weak";
+        if (strength === 2) return "Medium";
+        if (strength >= 3) return "Strong";
+      }
+
+      // Show styled alert
+      function showPopup(message, isError = false) {
+        const popup = document.getElementById("popup");
+        popup.textContent = message;
+        popup.className = "popup show";
+        if (isError) popup.classList.add("error");
+        setTimeout(() => {
+          popup.className = "popup";
+        }, 3000);
+      }
+
+      // Submit form
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const password = passwordField.value;
+        const strength = calculatePasswordStrength(password);
+
+        if (strength !== "Strong") {
+          showPopup(
+            "❌ Password must be Strong (8+ chars, uppercase, number, symbol)!",
+            true
+          );
+          return;
+        }
+
+        const formData = {
+          username: form.username.value,
+          password: form.password.value,
+          nid: form.nid.value,
+        };
+
+        try {
+          const res = await fetch("http://localhost:3000/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData),
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            showPopup("✅ Registered successfully!");
+            setTimeout(() => {
+              window.location.href = "login.html";
+            }, 1200);
+          } else {
+            showPopup(`❌ ${data.message}`, true);
+          }
+        } catch (err) {
+          showPopup("❌ Registration failed", true);
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,358 @@
+/* Fresh Futuristic Styles */
+
+:root {
+  --bright-bg: #fffaf0; /* Light cream/papaya whip */
+  --accent-color: #ff6347; /* Tomato/Orange-Red */
+  --secondary-color: #ffd700; /* Gold */
+  --text-color: #444; /* Dark gray */
+  --glass-bg: rgba(255, 250, 240, 0.4);
+  --glass-border: rgba(255, 160, 122, 0.2);
+}
+
+/* Body Styles */
+body {
+  font-family: "futuristic", sans-serif;
+  background: linear-gradient(to bottom, var(--bright-bg), #e0ffff);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--text-color);
+  animation: fadeIn 1s ease-in;
+}
+
+/* Main Heading */
+h1 {
+  margin-top: 30px;
+  color: var(--accent-color);
+  text-shadow: 0 0 8px var(--accent-color);
+  letter-spacing: 2px;
+}
+
+/* Links */
+a {
+  display: inline-block;
+  margin: 15px;
+  padding: 12px 20px;
+  background-color: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-color);
+  text-decoration: none;
+  font-size: 18px;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+a:hover {
+  background-color: var(--accent-color);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Form Styling */
+form {
+  margin-top: 30px;
+  background: var(--glass-bg);
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: 320px;
+  max-width: 90%;
+  box-sizing: border-box;
+  border: 1px solid var(--glass-border);
+}
+
+/* Input Wrapper */
+.input-wrapper {
+  position: relative;
+  width: 100%;
+  margin-bottom: 15px;
+  box-sizing: border-box;
+}
+
+/* All Inputs Styling */
+.input-wrapper input[type="text"],
+.input-wrapper input[type="password"],
+form input[type="file"] {
+  width: 100%;
+  padding: 12px;
+  padding-right: 55px; /* Reserve space for toggle eye */
+  border: 1px solid var(--accent-color);
+  border-radius: 20px;
+  font-size: 16px;
+  background-color: white;
+  color: var(--text-color);
+  box-sizing: border-box;
+  transition: border-color 0.3s;
+}
+
+/* Input Focus Effect */
+.input-wrapper input[type="text"]:focus,
+.input-wrapper input[type="password"]:focus,
+form input[type="file"]:focus form select:focus {
+  border-color: var(--secondary-color);
+  outline: none;
+  box-shadow: 0 0 5px var(--secondary-color);
+}
+
+.toggle-password {
+  position: absolute;
+  top: 37%;
+  right: 10px;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  width: 30px;
+  height: 30px;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--accent-color);
+  padding: 0;
+  margin: 0;
+  border-radius: 50%; /* Small circle */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s;
+}
+
+.toggle-password:hover {
+  background-color: var(--glass-bg);
+  color: var(--secondary-color);
+}
+
+/* Submit Button */
+form button {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--secondary-color);
+  border: none;
+  color: var(--text-color);
+  font-size: 18px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s ease;
+}
+
+form button:hover {
+  background-color: #ff8c00; /* Dark Orange */
+  transform: scale(1.03);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Notification Popup */
+.popup {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 25px;
+  background-color: #28a745;
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+  font-size: 16px;
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.3s, transform 0.3s;
+  z-index: 1000;
+}
+
+.popup.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.popup.error {
+  background-color: #dc3545;
+}
+
+/* Media Queries */
+@media (max-width: 600px) {
+  form {
+    width: 90%;
+  }
+}
+
+/* Button Container Home */
+.button-container {
+  margin-top: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+}
+
+/* Home page buttons */
+.button-container a {
+  display: inline-block;
+  width: 250px;
+  padding: 14px;
+  text-align: center;
+  font-size: 18px;
+  border-radius: 20px;
+  background-color: var(--glass-bg);
+  color: var(--text-color);
+  border: 1px solid var(--glass-border);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.button-container a:hover {
+  background-color: var(--accent-color);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Load More Button */
+.load-more-button {
+  margin: 20px;
+  padding: 12px 20px;
+  font-size: 16px;
+  background-color: var(--secondary-color);
+  color: var(--text-color);
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.load-more-button:hover {
+  background-color: var(--accent-color);
+  color: white;
+}
+
+/* Welcome Section */
+.welcome-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Logout Button */
+.logout-button {
+  padding: 10px 20px;
+  background-color: #ff6347;
+  border: none;
+  color: white;
+  font-size: 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.logout-button:hover {
+  background-color: #cc4c36;
+}
+
+/* Block Card */
+.block-card {
+  background: #ffffff;
+  padding: 20px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Button Hover Bounce */
+.button-container a:hover,
+.load-more-button:hover {
+  transform: translateY(-3px) scale(1.03);
+  transition: transform 0.3s;
+}
+/* ========================== */
+/* New Styles for Landing Page */
+/* ========================== */
+
+/* Particles.js background */
+#particles-js {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--bright-bg), #e0ffff);
+  z-index: -1;
+  top: 0;
+  left: 0;
+}
+
+/* Admin Dashboard Section */
+#adminDashboard {
+  display: none;
+  margin-top: 30px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  padding: 20px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+/* Mini Block Card inside Dashboard */
+.block-card {
+  background: #ffffff;
+  padding: 20px;
+  margin-top: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Dashboard Heading */
+#adminDashboard h2 {
+  color: var(--accent-color);
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+/* Dashboard stats text */
+#adminDashboard p {
+  font-size: 18px;
+  margin: 10px 0;
+}
+
+/* Small numbers */
+#adminDashboard span {
+  font-weight: bold;
+}
+
+form input[type="text"],
+form input[type="password"],
+form input[type="file"],
+form input[type="email"],
+form select {
+  width: 94%;
+  margin-bottom: 15px;
+  padding: 12px;
+  border: 1px solid var(--accent-color);
+  border-radius: 20px;
+  font-size: 16px;
+  background-color: white;
+  color: var(--text-color);
+  transition: border-color 0.3s;
+}
+#particles-js {
+  position: fixed;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
