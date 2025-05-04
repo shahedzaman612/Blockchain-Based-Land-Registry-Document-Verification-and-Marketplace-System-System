@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Live Chat</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #121212;
+        color: #fff;
+        padding: 20px;
+      }
+      #chatBox {
+        border: 1px solid #555;
+        padding: 10px;
+        height: 300px;
+        overflow-y: scroll;
+        background: #1e1e1e;
+      }
+      #msgInput {
+        width: 80%;
+        padding: 8px;
+      }
+      button {
+        padding: 8px 16px;
+        background-color: #ff6347;
+        border: none;
+        color: white;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #e5533c;
+      }
+      .notification {
+        background-color: #ff6347;
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+      .notification:hover {
+        background-color: #e5533c;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Live Chat</h2>
+    <div id="chatBox"></div>
+    <br />
+    <input type="text" id="msgInput" placeholder="Type your message..." />
+    <button onclick="sendMessage()">Send</button>
+
+    <div id="notificationBox"></div>
+
+    <script>
+      const socket = io("http://localhost:3000");
+      const urlParams = new URLSearchParams(window.location.search);
+      const partner = urlParams.get("partner");
+      const role = urlParams.get("role");
+      const myNID = localStorage.getItem("nid");
+
+      if (!myNID || !partner || !role) {
+        alert("Missing chat information. Redirecting...");
+        window.location.href = "user-dashboard.html";
+      }
+
+      if (!myNID) {
+        alert("Missing NID. Redirecting...");
+        window.location.href = "login.html";
+      } else {
+        socket.emit("register", myNID);
+      }
+
+      const room = [myNID, partner].sort().join("-");
+      socket.emit("join_room", room);
+      // If seller, notify the buyer
+      if (role === "seller") {
+        socket.emit("chat_notification", {
+          from: myNID,
+          to: partner,
+        });
+      }
+
+      // Listen for new chat notifications (for the buyer)
+      socket.on("new_chat_notification", ({ message, room }) => {
+        const notificationBox = document.getElementById("notificationBox");
+        const notification = document.createElement("div");
+        notification.textContent = message;
+        notification.classList.add("notification");
+        notification.onclick = () => {
+          // When clicked, join the chat room
+          window.location.href = `live-chat.html?partner=${partner}&role=seller`;
+        };
+        notificationBox.appendChild(notification);
+      });
+
+      socket.on("receive_message", ({ sender, message }) => {
+        const chatBox = document.getElementById("chatBox");
+        const msgDiv = document.createElement("div");
+        msgDiv.textContent = `${sender === myNID ? "You" : sender}: ${message}`;
+        chatBox.appendChild(msgDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      });
+
+      function sendMessage() {
+        const message = document.getElementById("msgInput").value;
+        if (!message.trim()) return;
+
+        socket.emit("send_message", {
+          room,
+          sender: myNID,
+          message,
+        });
+
+        document.getElementById("msgInput").value = "";
+      }
+    </script>
+  </body>
+</html>

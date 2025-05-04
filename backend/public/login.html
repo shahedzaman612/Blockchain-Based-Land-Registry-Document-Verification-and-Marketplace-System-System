@@ -67,10 +67,14 @@
           const data = await response.json();
 
           if (response.ok) {
+            // Save token and NID to localStorage
             localStorage.setItem("token", data.token);
+            localStorage.setItem("nid", data.nid); // Store the NID here
+            localStorage.setItem("role", data.role); // Optionally store role if you use that for the chat
+
             showPopup("✅ Login successful!");
             setTimeout(() => {
-              window.location.href = "index.html";
+              window.location.href = "index.html"; // Redirect to the main page
             }, 1200);
           } else {
             showPopup(`❌ ${data.message}`, true);

@@ -30,5 +30,22 @@
     "description": "Reality",
     "imagePath": "/uploads/77aadca548581dbacc57f669c30eb75a",
     "postedBy": "Shahed"
+  },
+  {
+    "id": 1746364214474,
+    "title": "10000 square feet land",
+    "price": "150000000",
+    "description": "everything is ok",
+    "imagePath": "/uploads/41737aa9366daf91acfec2599a992ae7",
+    "postedBy": "yunose"
+  },
+  {
+    "id": 1746364405239,
+    "title": "90500 square meter land",
+    "price": "76000000000",
+    "description": "well maintained",
+    "imagePath": "/uploads/6f3114a0cee94352f52ff9d84d0b138b",
+    "postedBy": "yunose",
+    "sellerNID": "456789123"
   }
 ]

@@ -54,5 +54,26 @@
     "message": "A buyer is interested in your land ad: \"kbkkbk\". Contact them for more details.",
     "adId": 1746054141322,
     "timestamp": "2025-05-01T00:08:28.591Z"
+  },
+  {
+    "to": "Shahed",
+    "buyer": "yunose",
+    "message": "A buyer is interested in your land ad: \"30000 square feet land \". Contact them for more details.",
+    "adId": 1746056592423,
+    "timestamp": "2025-05-03T23:47:52.810Z"
+  },
+  {
+    "to": "shahed",
+    "buyer": "yunose",
+    "message": "A buyer is interested in your land ad: \"5000 feet land \". Contact them for more details.",
+    "adId": 1746028839800,
+    "timestamp": "2025-05-03T23:48:39.995Z"
+  },
+  {
+    "to": "Shahed",
+    "buyer": "yunose",
+    "message": "A buyer is interested in your land ad: \"30000 square feet land \". Contact them for more details.",
+    "adId": 1746056592423,
+    "timestamp": "2025-05-03T23:49:44.436Z"
   }
 ]
