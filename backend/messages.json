@@ -75,5 +75,33 @@
     "message": "A buyer is interested in your land ad: \"30000 square feet land \". Contact them for more details.",
     "adId": 1746056592423,
     "timestamp": "2025-05-03T23:49:44.436Z"
+  },
+  {
+    "room": "123456789-456789123",
+    "senderNID": "123456789",
+    "senderUsername": "Shahed",
+    "message": "tomar sritir porosho vura",
+    "timestamp": "2025-05-05T16:31:14.036Z"
+  },
+  {
+    "room": "123456789-456789123",
+    "senderNID": "456789123",
+    "senderUsername": "yunose",
+    "message": "osro diye gathbo mala",
+    "timestamp": "2025-05-05T16:32:29.812Z"
+  },
+  {
+    "room": "123456789-456789123",
+    "senderNID": "123456789",
+    "senderUsername": "Shahed",
+    "message": "naiba tumi ele",
+    "timestamp": "2025-05-05T16:32:37.800Z"
+  },
+  {
+    "room": "123456789-456789123",
+    "senderNID": "456789123",
+    "senderUsername": "yunose",
+    "message": "naiba tumi ele",
+    "timestamp": "2025-05-05T16:32:44.340Z"
   }
 ]

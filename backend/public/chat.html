@@ -43,6 +43,32 @@
       .notification:hover {
         background-color: #e5533c;
       }
+      .message {
+        padding: 8px 12px;
+        margin: 5px;
+        border-radius: 10px;
+        max-width: 70%;
+        word-wrap: break-word;
+      }
+
+      .sent {
+        background-color: #4caf50;
+        align-self: flex-end;
+        text-align: right;
+        margin-left: auto;
+      }
+
+      .received {
+        background-color: #333;
+        align-self: flex-start;
+        text-align: left;
+        margin-right: auto;
+      }
+
+      #chatBox {
+        display: flex;
+        flex-direction: column;
+      }
     </style>
   </head>
   <body>
@@ -82,6 +108,28 @@
           to: partner,
         });
       }
+      // Load chat history from server
+      fetch(`http://localhost:3000/chat-history?room=${room}`)
+        .then((res) => res.json())
+        .then((messages) => {
+          const chatBox = document.getElementById("chatBox");
+          messages.forEach(({ senderUsername, senderNID, message }) => {
+            const msgDiv = document.createElement("div");
+            msgDiv.classList.add("message");
+
+            if (senderNID === myNID) {
+              msgDiv.classList.add("sent");
+              msgDiv.textContent = `You: ${message}`;
+            } else {
+              msgDiv.classList.add("received");
+              msgDiv.textContent = `${senderUsername}: ${message}`;
+            }
+
+            chatBox.appendChild(msgDiv);
+          });
+
+          chatBox.scrollTop = chatBox.scrollHeight;
+        });
 
       // Listen for new chat notifications (for the buyer)
       socket.on("new_chat_notification", ({ message, room }) => {
@@ -96,10 +144,20 @@
         notificationBox.appendChild(notification);
       });
 
-      socket.on("receive_message", ({ sender, message }) => {
+      socket.on("receive_message", ({ senderUsername, senderNID, message }) => {
         const chatBox = document.getElementById("chatBox");
         const msgDiv = document.createElement("div");
-        msgDiv.textContent = `${sender === myNID ? "You" : sender}: ${message}`;
+
+        msgDiv.classList.add("message");
+
+        if (senderNID === localStorage.getItem("nid")) {
+          msgDiv.classList.add("sent");
+          msgDiv.textContent = `You: ${message}`;
+        } else {
+          msgDiv.classList.add("received");
+          msgDiv.textContent = `${senderUsername}: ${message}`;
+        }
+
         chatBox.appendChild(msgDiv);
         chatBox.scrollTop = chatBox.scrollHeight;
       });

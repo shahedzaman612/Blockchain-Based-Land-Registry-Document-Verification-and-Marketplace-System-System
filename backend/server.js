@@ -7,6 +7,7 @@ const path = require("path");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const users = JSON.parse(fs.readFileSync("users.json"));
 
 const { createBlock, verifyDocument, hashDocument } = require("./blockchain");
 
@@ -51,6 +52,10 @@ function authorizeRole(role) {
     next();
   };
 }
+function getUsernameFromNID(nid) {
+  const user = users.find((u) => u.nid === nid);
+  return user ? user.username : nid;
+}
 
 // --- File Helpers ---
 const usersFile = path.join(__dirname, "users.json");
@@ -69,7 +74,33 @@ const readAds = () =>
 
 const writeAds = (ads) =>
   fs.writeFileSync(adsFile, JSON.stringify(ads, null, 2));
+function getUsernameFromNID(nid) {
+  const user = users.find((u) => u.nid === nid);
+  return user ? user.username : nid;
+}
+const MESSAGES_FILE = path.join(__dirname, "messages.json");
 
+function loadMessages() {
+  try {
+    if (fs.existsSync(MESSAGES_FILE)) {
+      const data = fs.readFileSync(MESSAGES_FILE);
+      return JSON.parse(data);
+    } else {
+      return {};
+    }
+  } catch (err) {
+    console.error("Error loading messages:", err);
+    return {};
+  }
+}
+
+function saveMessages(messages) {
+  try {
+    fs.writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2));
+  } catch (err) {
+    console.error("Error saving messages:", err);
+  }
+}
 function loadMissedNotifications() {
   if (fs.existsSync(missedNotificationsPath)) {
     try {
@@ -147,25 +178,37 @@ io.on("connection", (socket) => {
     console.log(`📥 User joined room ${room}`);
   });
 
-  socket.on("send_message", ({ room, sender, receiver, message }) => {
-    const messages = readMessages();
-    messages.push({
+  socket.on("send_message", ({ room, sender, message }) => {
+    const senderUsername = getUsernameFromNID(sender);
+
+    // Save to messages.json
+    const allMessages = loadMessages();
+    allMessages.push({
       room,
-      sender,
-      to: receiver,
+      senderNID: sender,
+      senderUsername,
       message,
-      timestamp: Date.now(),
+      timestamp: new Date().toISOString(),
     });
-    writeMessages(messages);
-    io.to(room).emit("receive_message", { sender, message });
+    saveMessages(allMessages);
+
+    // Emit to clients
+    io.to(room).emit("receive_message", {
+      senderUsername,
+      senderNID: sender,
+      message,
+    });
   });
 
   socket.on("chat_notification", ({ from, to }) => {
     const buyerSocketId = onlineUsers[to];
+    const fromUsername = getUsernameFromNID(from);
+
     const notification = {
       to,
       from,
-      message: `💬 New chat request from ${from}`,
+      fromUsername,
+      message: `💬 New chat request from ${fromUsername}`,
       timestamp: new Date().toISOString(),
     };
 
@@ -290,7 +333,6 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Route for creating a new block
 // Create Block Route
 const crypto = require("crypto"); // Make sure this is at the top
 
@@ -387,7 +429,7 @@ app.post("/post-ad", authenticateJWT, upload.single("image"), (req, res) => {
       description,
       imagePath: `/uploads/${path.basename(imagePath)}`,
       postedBy: req.user.username,
-      sellerNID: req.user.nid, // <-- Added NID here
+      sellerNID: req.user.nid,
     };
 
     const ads = readAds();
@@ -406,7 +448,7 @@ app.get("/ads", authenticateJWT, (req, res) => {
   try {
     const ads = readAds().map((ad) => ({
       ...ad,
-      imageUrl: `http://localhost:${PORT}${ad.imagePath}`, // Serve the full image URL
+      imageUrl: `http://localhost:${PORT}${ad.imagePath}`,
     }));
     res.json(ads);
   } catch (err) {
@@ -443,14 +485,15 @@ function getSocketIdByNID(nid) {
 
 app.get("/buy-requests", authenticateJWT, (req, res) => {
   try {
-    const sellerNID = req.user.nid; // ✅ Declare it with `const`
-    console.log("Fetching buy requests for seller NID:", sellerNID);
-
+    const sellerNID = req.user.nid;
     const allRequests = readBuyRequests();
-    console.log(allRequests); // ✅ Read all buy requests
-    const sellerRequests = allRequests.filter(
-      (request) => request.sellerNID === sellerNID
-    );
+
+    const sellerRequests = allRequests
+      .filter((request) => request.sellerNID === sellerNID)
+      .map((request) => ({
+        ...request,
+        buyerUsername: getUsernameFromNID(request.buyerNID),
+      }));
 
     res.json(sellerRequests);
   } catch (err) {
@@ -458,6 +501,7 @@ app.get("/buy-requests", authenticateJWT, (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
 app.post("/buy-request/:adId", authenticateJWT, (req, res) => {
   try {
     const adId = req.params.adId;
@@ -597,6 +641,11 @@ app.get("/messages/:nid1/:nid2", authenticateJWT, (req, res) => {
 //     res.status(404).json({ error: "User not found" });
 //   }
 // });
+app.get("/chat-history", (req, res) => {
+  const room = req.query.room;
+  const messages = loadMessages().filter((msg) => msg.room === room);
+  res.json(messages);
+});
 
 server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
