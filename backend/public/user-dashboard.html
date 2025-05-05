@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>My Lands</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="style.css" />
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -14,36 +15,20 @@
         window.location.href = "login.html";
       }
     </script>
-
-    <style>
-      #particles-js {
-        position: fixed;
-        z-index: -1;
-        width: 100%;
-        height: 100%;
-        top: 0;
-        left: 0;
-      }
-
-      #chatNotificationContainer div {
-        background-color: #ffe4b5;
-        border: 1px solid #ffa500;
-        padding: 10px;
-        margin: 10px 0;
-        border-radius: 5px;
-      }
-    </style>
   </head>
+
   <body>
+    <div id="particles-js"></div>
+
+    <h1>My Submitted or Owned Lands</h1>
     <div id="notificationBox"></div>
     <div id="chatNotificationContainer" class="block-container"></div>
 
-    <div id="particles-js"></div>
-    <h1>My Submitted or Owned Lands</h1>
-
+    <div id="loadingLands">Loading your lands...</div>
     <div id="landList" class="block-container"></div>
 
     <h2>Buy Requests</h2>
+    <div id="loadingRequests">Loading buy requests...</div>
     <div id="buyRequestList" class="block-container"></div>
 
     <a href="index.html" class="back-button">⬅️ Back to Home</a>
@@ -57,29 +42,33 @@
         window.location.href = "login.html";
       }
 
-      // Register user in Socket.IO
       socket.emit("register", myNID);
+
       socket.on("pending_notifications", (notifications) => {
         const container = document.getElementById("notificationBox");
+        if (!container) return;
 
         notifications.forEach(({ from, message }) => {
           const div = document.createElement("div");
           div.className = "notification";
           div.innerHTML = `
-      📩 Message from <b>${from}</b>: ${message}
-      <button onclick="startChat('${from}')">Join Chat</button>
-    `;
+            📩 Message from <b>${from}</b>: ${message}
+            <button onclick="startChat('${from}')">Join Chat</button>
+            <button onclick="this.parentElement.remove()">Dismiss</button>
+          `;
           container.appendChild(div);
         });
       });
 
-      // When seller sends a chat notification
       socket.on("chat_notification", ({ from }) => {
         const container = document.getElementById("chatNotificationContainer");
+        if (!container) return;
+
         const div = document.createElement("div");
         div.innerHTML = `
           📩 New chat started by <b>${from}</b><br>
-          <button class="joinChatButton" onclick="location.href='live-chat.html?partner=${from}&role=buyer'">Join Chat</button>
+          <button class="joinChatButton" onclick="startChat('${from}')">Join Chat</button>
+          <button onclick="this.parentElement.remove()">Dismiss</button>
         `;
         container.appendChild(div);
       });
@@ -93,10 +82,10 @@
 
         const room = [userNID, partnerNID].sort().join("-");
         socket.emit("join_room", room);
-        window.location.href = `chat.html?partner=${partnerNID}&role=buyer`;
+        const role = userNID === partnerNID ? "buyer" : "seller";
+        window.location.href = `chat.html?partner=${partnerNID}&role=${role}`;
       }
 
-      // Seller initiated chat alert
       socket.on("chat_enabled", ({ sellerNID }) => {
         const join = confirm(
           "📨 The seller has started a chat with you. Join?"
@@ -133,6 +122,7 @@
 
       async function fetchMyLands() {
         const token = localStorage.getItem("token");
+        const myNID = localStorage.getItem("nid");
 
         try {
           const response = await fetch("http://localhost:3000/my-lands", {
@@ -143,6 +133,7 @@
 
           const lands = await response.json();
           const list = document.getElementById("landList");
+          document.getElementById("loadingLands").style.display = "none";
 
           if (!lands.length) {
             list.innerHTML = "<p>No lands submitted yet.</p>";
@@ -156,14 +147,23 @@
               <p><strong>Transaction ID:</strong> ${land.transactionId}</p>
               <p><strong>From:</strong> ${land.from}</p>
               <p><strong>To:</strong> ${land.to}</p>
-              <p><span class="label">To NID:</span> ${land.toNID}</p>
-              <p><span class="label">DCR Hash:</span> ${land.dcrHash}</p>
-              <p><span class="label">Porcha Hash:</span> ${land.porchaHash}</p>
-              <p><span class="label">Dolil Hash:</span> ${land.dolilHash}</p>
+              <p><strong>To NID:</strong> ${land.toNID}</p>
+              <p><strong>DCR Hash:</strong> ${land.dcrHash}</p>
+              <p><strong>Porcha Hash:</strong> ${land.porchaHash}</p>
+              <p><strong>Dolil Hash:</strong> ${land.dolilHash}</p>
               <p><strong>Timestamp:</strong> ${new Date(
                 land.timestamp
               ).toLocaleString()}</p>
             `;
+
+            // If seller viewing land and it's not theirs, allow chat
+            if (land.toNID !== myNID) {
+              const chatBtn = document.createElement("button");
+              chatBtn.textContent = "Start Chat with Owner";
+              chatBtn.onclick = () => startChat(land.toNID);
+              div.appendChild(chatBtn);
+            }
+
             list.appendChild(div);
           });
         } catch (err) {
@@ -173,6 +173,7 @@
 
       async function fetchBuyRequests() {
         const token = localStorage.getItem("token");
+        const myNID = localStorage.getItem("nid");
 
         try {
           const response = await fetch("http://localhost:3000/buy-requests", {
@@ -181,7 +182,6 @@
             },
           });
 
-          // Check if the response status is OK (200)
           if (!response.ok) {
             const errorMessage = await response.json();
             throw new Error(
@@ -191,35 +191,40 @@
 
           const buyRequests = await response.json();
           const list = document.getElementById("buyRequestList");
+          document.getElementById("loadingRequests").style.display = "none";
 
-          if (buyRequests.length === 0) {
+          if (!buyRequests.length) {
             list.innerHTML = "<p>No new buy requests.</p>";
             return;
           }
 
-          // Loop through the buy requests and display them
           buyRequests.forEach((request) => {
             const div = document.createElement("div");
             div.className = "buy-request-card";
-            div.innerHTML = `
-        <p><strong>Buyer:</strong> ${request.buyerUsername}</p>
-        <p><strong>Message:</strong> ${request.message}</p>
-        <p><strong>Timestamp:</strong> ${new Date(
-          request.timestamp
-        ).toLocaleString()}</p>
-        <button onclick="window.location.href='chat.html?partner=${
-          request.buyerNID
-        }&role=buyer'">
-        Open Chat
-      </button>
-      `;
+
+            const p1 = document.createElement("p");
+            p1.textContent = `Buyer: ${request.buyerUsername}`;
+            const p2 = document.createElement("p");
+            p2.textContent = `Message: ${request.message}`;
+            const p3 = document.createElement("p");
+            p3.textContent = `Timestamp: ${new Date(
+              request.timestamp
+            ).toLocaleString()}`;
+
+            const btn = document.createElement("button");
+            const role = myNID === request.buyerNID ? "buyer" : "seller";
+            btn.textContent = "Open Chat";
+            btn.onclick = () => {
+              window.location.href = `chat.html?partner=${request.buyerNID}&role=${role}`;
+            };
+
+            div.append(p1, p2, p3, btn);
             list.appendChild(div);
           });
         } catch (err) {
           alert(`❌ ${err.message}`);
           console.error("Error fetching buy requests:", err);
         }
-        console.log("Buy Requests:", buyRequests);
       }
 
       fetchMyLands();

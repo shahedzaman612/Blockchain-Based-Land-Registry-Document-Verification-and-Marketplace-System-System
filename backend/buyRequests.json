@@ -136,5 +136,14 @@
     "buyerNID": "123456789",
     "timestamp": "2025-05-04T14:32:15.112Z",
     "message": "A buyer is interested in your land ad: \"90500 square meter land\"."
+  },
+  {
+    "adId": 1746364405239,
+    "adTitle": "90500 square meter land",
+    "sellerNID": "456789123",
+    "buyerUsername": "yunose",
+    "buyerNID": "456789123",
+    "timestamp": "2025-05-04T16:03:33.977Z",
+    "message": "A buyer is interested in your land ad: \"90500 square meter land\"."
   }
 ]

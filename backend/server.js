@@ -147,8 +147,16 @@ io.on("connection", (socket) => {
     console.log(`📥 User joined room ${room}`);
   });
 
-  socket.on("send_message", ({ room, sender, message }) => {
-    console.log(`📨 Message from ${sender} to room ${room}: ${message}`);
+  socket.on("send_message", ({ room, sender, receiver, message }) => {
+    const messages = readMessages();
+    messages.push({
+      room,
+      sender,
+      to: receiver,
+      message,
+      timestamp: Date.now(),
+    });
+    writeMessages(messages);
     io.to(room).emit("receive_message", { sender, message });
   });
 
@@ -212,9 +220,6 @@ io.on("connection", (socket) => {
       }
     }
   });
-  function getSocketIdByNID(nid) {
-    return socketIdMap[nid]; // Return the socket ID of the seller
-  }
 });
 // --- Routes ---
 
@@ -382,7 +387,7 @@ app.post("/post-ad", authenticateJWT, upload.single("image"), (req, res) => {
       description,
       imagePath: `/uploads/${path.basename(imagePath)}`,
       postedBy: req.user.username,
-      sellerNIDNID: req.user.nid, // <-- Added NID here
+      sellerNID: req.user.nid, // <-- Added NID here
     };
 
     const ads = readAds();
@@ -557,12 +562,45 @@ app.get("/notifications", authenticateJWT, (req, res) => {
     res.status(500).json({ message: "Failed to load notifications" });
   }
 });
+const CHAT_FILE = path.join(__dirname, "chatMessages.json");
 
+function readMessages() {
+  return fs.existsSync(CHAT_FILE) ? JSON.parse(fs.readFileSync(CHAT_FILE)) : [];
+}
+
+function writeMessages(messages) {
+  fs.writeFileSync(CHAT_FILE, JSON.stringify(messages, null, 2));
+}
+
+// Get chat history between two users
+app.get("/messages/:nid1/:nid2", authenticateJWT, (req, res) => {
+  const { nid1, nid2 } = req.params;
+  const allMessages = readMessages();
+  const chat = allMessages.filter(
+    (msg) =>
+      (msg.from === nid1 && msg.to === nid2) ||
+      (msg.from === nid2 && msg.to === nid1)
+  );
+  res.json(chat);
+});
 //Start the server
 // app.listen(PORT, () => {
 //   console.log(`Server is running on http://localhost:${PORT}`);
 // });
+// app.get("/get-user/:nid", (req, res) => {
+//   const { nid } = req.params;
+//   const users = JSON.parse(fs.readFileSync("users.json", "utf-8"));
+//   const user = users.find((u) => u.nid === nid);
+//   if (user) {
+//     res.json({ username: user.username });
+//   } else {
+//     res.status(404).json({ error: "User not found" });
+//   }
+// });
 
 server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found" });
 });
