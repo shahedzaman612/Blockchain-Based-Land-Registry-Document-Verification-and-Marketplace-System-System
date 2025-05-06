@@ -73,6 +73,23 @@
   </head>
   <body>
     <h2>Live Chat</h2>
+    <div
+      id="partnerInfo"
+      style="margin-bottom: 20px; display: flex; align-items: center"
+    >
+      <img
+        id="partnerImage"
+        src=""
+        alt="Partner's Avatar"
+        style="
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          margin-right: 10px;
+        "
+      />
+      <span id="partnerName" style="font-size: 18px; font-weight: bold"></span>
+    </div>
     <div id="chatBox"></div>
     <br />
     <input type="text" id="msgInput" placeholder="Type your message..." />
@@ -98,7 +115,15 @@
       } else {
         socket.emit("register", myNID);
       }
+      fetch(`/get-user-info?nid=${partner}`) // Add the API to get user's name and avatar
+        .then((res) => res.json())
+        .then((userData) => {
+          const partnerNameElem = document.getElementById("partnerName");
+          const partnerImageElem = document.getElementById("partnerImage");
 
+          partnerNameElem.textContent = userData.username; // Replace with the partner's name
+          partnerImageElem.src = userData.profilePic || "/default-avatar.jpg"; // Default if no profile pic
+        });
       const room = [myNID, partner].sort().join("-");
       socket.emit("join_room", room);
       // If seller, notify the buyer

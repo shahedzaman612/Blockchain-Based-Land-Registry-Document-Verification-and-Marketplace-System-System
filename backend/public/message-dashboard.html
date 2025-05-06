@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Message Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h1>Your Chats</h1>
+    <div id="chat-list"></div>
+
+    <script>
+      const token = localStorage.getItem("token");
+
+      async function loadChatRooms() {
+        const res = await fetch("/chat-rooms", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const rooms = await res.json();
+
+        const chatList = document.getElementById("chat-list");
+        chatList.innerHTML = "";
+
+        if (rooms.length === 0) {
+          chatList.innerHTML = "<p>No chats found.</p>";
+          return;
+        }
+
+        rooms.forEach((room) => {
+          const div = document.createElement("div");
+          div.classList.add("chat-room");
+          div.innerHTML = `
+          <strong>Chat with:</strong> ${room.otherUsername} (${
+            room.otherNID
+          })<br>
+          <strong>Last message:</strong> ${
+            room.lastMessage || "No messages yet"
+          }<br>
+          <strong>Time:</strong> ${
+            room.lastTimestamp
+              ? new Date(room.lastTimestamp).toLocaleString()
+              : "—"
+          }<br>
+          <a href="chat.html?room=${room.room}">Open Chat</a>
+        `;
+          chatList.appendChild(div);
+        });
+      }
+
+      loadChatRooms();
+    </script>
+  </body>
+</html>

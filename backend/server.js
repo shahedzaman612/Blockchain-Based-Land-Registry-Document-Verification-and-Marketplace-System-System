@@ -30,7 +30,16 @@ app.use(express.static(path.join(__dirname, "public"))); // Serve static files f
 const missedNotificationsPath = path.join(__dirname, "notifications.json");
 // Initialize multer for file uploads
 const upload = multer({ dest: "uploads/" });
-
+// loadJSON function to read JSON files
+function loadJSON(path) {
+  try {
+    const data = fs.readFileSync(path);
+    return JSON.parse(data);
+  } catch (err) {
+    console.error(`Error reading ${path}:`, err);
+    return [];
+  }
+}
 // --- JWT Middleware ---
 function authenticateJWT(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -645,6 +654,25 @@ app.get("/chat-history", (req, res) => {
   const room = req.query.room;
   const messages = loadMessages().filter((msg) => msg.room === room);
   res.json(messages);
+});
+app.get("/get-user-info", (req, res) => {
+  const nid = req.query.nid;
+
+  if (!nid) {
+    return res.status(400).json({ error: "Missing NID parameter" });
+  }
+
+  const users = loadJSON("users.json");
+  const user = users.find((u) => u.nid === nid);
+
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  res.json({
+    username: user.username,
+    profilePic: user.profilePic || null, // assuming you store this field, or leave null
+  });
 });
 
 server.listen(PORT, () => {
