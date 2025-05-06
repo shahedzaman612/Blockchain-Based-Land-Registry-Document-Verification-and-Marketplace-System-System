@@ -674,6 +674,41 @@ app.get("/get-user-info", (req, res) => {
     profilePic: user.profilePic || null, // assuming you store this field, or leave null
   });
 });
+function getUserNameByNID(partnerNID) {
+  const users = JSON.parse(fs.readFileSync("users.json"));
+  const user = users.find((u) => u.nid.toString() === nid.toString());
+  return user ? user.name : null;
+}
+app.get("/chat-rooms", authenticateJWT, (req, res) => {
+  const userId = req.user?.nid?.toString(); // Ensure it's a string
+
+  if (!userId) {
+    return res.status(401).json({ error: "Invalid or missing user data" });
+  }
+
+  const messages = JSON.parse(fs.readFileSync("messages.json"));
+
+  const rooms = new Set();
+  const partners = {};
+
+  messages.forEach((msg) => {
+    const [id1, id2] = msg.room.split("-");
+    if (id1 === userId || id2 === userId) {
+      rooms.add(msg.room);
+
+      const partnerNID = id1 === userId ? id2 : id1;
+
+      partners[msg.room] = getUsernameFromNID(partnerNID);
+    }
+  });
+
+  const chatRooms = Array.from(rooms).map((room) => ({
+    room,
+    partnerName: partners[room] || "Unknown",
+  }));
+
+  res.json({ chatRooms });
+});
 
 server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

@@ -17,6 +17,8 @@
         height: 300px;
         overflow-y: scroll;
         background: #1e1e1e;
+        display: flex;
+        flex-direction: column;
       }
       #msgInput {
         width: 80%;
@@ -50,24 +52,17 @@
         max-width: 70%;
         word-wrap: break-word;
       }
-
       .sent {
         background-color: #4caf50;
         align-self: flex-end;
         text-align: right;
         margin-left: auto;
       }
-
       .received {
         background-color: #333;
         align-self: flex-start;
         text-align: left;
         margin-right: auto;
-      }
-
-      #chatBox {
-        display: flex;
-        flex-direction: column;
       }
     </style>
   </head>
@@ -100,40 +95,43 @@
     <script>
       const socket = io("http://localhost:3000");
       const urlParams = new URLSearchParams(window.location.search);
-      const partner = urlParams.get("partner");
+      const partnerNID = urlParams.get("partner");
       const role = urlParams.get("role");
       const myNID = localStorage.getItem("nid");
-
-      if (!myNID || !partner || !role) {
-        alert("Missing chat information. Redirecting...");
-        window.location.href = "user-dashboard.html";
-      }
+      const partner = urlParams.get("partner");
 
       if (!myNID) {
         alert("Missing NID. Redirecting...");
         window.location.href = "login.html";
-      } else {
-        socket.emit("register", myNID);
       }
-      fetch(`/get-user-info?nid=${partner}`) // Add the API to get user's name and avatar
+
+      if (!partnerNID || !role) {
+        alert("Missing chat information. Redirecting...");
+        window.location.href = "user-dashboard.html";
+      }
+
+      const room = [myNID, partnerNID].sort().join("-");
+      socket.emit("register", myNID);
+
+      fetch(`/get-user-info?nid=${partnerNID}`)
         .then((res) => res.json())
         .then((userData) => {
           const partnerNameElem = document.getElementById("partnerName");
           const partnerImageElem = document.getElementById("partnerImage");
 
-          partnerNameElem.textContent = userData.username; // Replace with the partner's name
-          partnerImageElem.src = userData.profilePic || "/default-avatar.jpg"; // Default if no profile pic
+          partnerNameElem.textContent = userData.username || "Unknown";
+          partnerImageElem.src = userData.profilePic || "/default-avatar.jpg";
         });
-      const room = [myNID, partner].sort().join("-");
+
       socket.emit("join_room", room);
-      // If seller, notify the buyer
+
       if (role === "seller") {
         socket.emit("chat_notification", {
           from: myNID,
-          to: partner,
+          to: partnerNID,
         });
       }
-      // Load chat history from server
+
       fetch(`http://localhost:3000/chat-history?room=${room}`)
         .then((res) => res.json())
         .then((messages) => {
@@ -156,15 +154,13 @@
           chatBox.scrollTop = chatBox.scrollHeight;
         });
 
-      // Listen for new chat notifications (for the buyer)
       socket.on("new_chat_notification", ({ message, room }) => {
         const notificationBox = document.getElementById("notificationBox");
         const notification = document.createElement("div");
         notification.textContent = message;
         notification.classList.add("notification");
         notification.onclick = () => {
-          // When clicked, join the chat room
-          window.location.href = `live-chat.html?partner=${partner}&role=seller`;
+          window.location.href = `live-chat.html?partner=${partnerNID}&role=seller`;
         };
         notificationBox.appendChild(notification);
       });
@@ -172,10 +168,9 @@
       socket.on("receive_message", ({ senderUsername, senderNID, message }) => {
         const chatBox = document.getElementById("chatBox");
         const msgDiv = document.createElement("div");
-
         msgDiv.classList.add("message");
 
-        if (senderNID === localStorage.getItem("nid")) {
+        if (senderNID === myNID) {
           msgDiv.classList.add("sent");
           msgDiv.textContent = `You: ${message}`;
         } else {
@@ -188,8 +183,8 @@
       });
 
       function sendMessage() {
-        const message = document.getElementById("msgInput").value;
-        if (!message.trim()) return;
+        const message = document.getElementById("msgInput").value.trim();
+        if (!message) return;
 
         socket.emit("send_message", {
           room,

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chat Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h2>My Chats</h2>
+    <div id="chatRooms" class="block-container"></div>
+
+    <script>
+      function getPartnerNID(room) {
+        const myNID = localStorage.getItem("nid");
+        const [id1, id2] = room.split("-");
+        return id1 === myNID ? id2 : id1;
+      }
+      document.addEventListener("DOMContentLoaded", async () => {
+        const token = localStorage.getItem("token");
+        const myNID = localStorage.getItem("nid");
+
+        if (!token || !myNID) {
+          alert("You must be logged in.");
+          window.location.href = "login.html";
+          return;
+        }
+
+        try {
+          const response = await fetch("http://localhost:3000/chat-rooms", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (!response.ok) {
+            const text = await response.text();
+            throw new Error(text);
+          }
+
+          const data = await response.json();
+          const chatContainer = document.getElementById("chatRooms");
+
+          if (!data.chatRooms.length) {
+            chatContainer.innerHTML = "<p>No active chat rooms.</p>";
+            return;
+          }
+
+          data.chatRooms.forEach((room) => {
+            const div = document.createElement("div");
+            div.className = "chat-room-card";
+
+            const partnerNID = getPartnerNID(room.room);
+            const role = myNID === room.room.split("-")[0] ? "buyer" : "seller";
+
+            div.innerHTML = `
+             <p>💬 Chat with <b>${room.partnerName}</b></p>
+              <button onclick="location.href='chat.html?partner=${partnerNID}&role=${role}'">Open Chat</button>
+              `;
+            chatContainer.appendChild(div);
+          });
+        } catch (err) {
+          alert("❌ Failed to load chat rooms: " + err.message);
+          console.error(err);
+        }
+      });
+    </script>
+  </body>
+</html>
