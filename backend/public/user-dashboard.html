@@ -70,7 +70,9 @@
         const div = document.createElement("div");
         div.innerHTML = `
           📩 New chat started by <b>${from}</b><br>
-          <button class="joinChatButton" onclick="location.href='chat.html?partner=${from}&role=buyer'">Join Chat</button>
+          <<button onclick="location.href='chat.html?partner=${partnerNID}&role=${role}'"class="open-chat-btn">
+             Open Chat</button>
+
           <button onclick="this.parentElement.remove()">Dismiss</button>
         `;
         container.appendChild(div);
@@ -204,7 +206,29 @@
 
             const btn = document.createElement("button");
             btn.textContent = "Open Chat";
-            btn.onclick = () => {
+            btn.className = "open-chat-btn";
+            btn.onclick = async function () {
+              const card = this.closest(".buy-request-card");
+              if (card) card.remove(); // Remove from UI immediately
+
+              // Optional: Remove from backend
+              try {
+                await fetch("http://localhost:3000/remove-buy-request", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                  },
+                  body: JSON.stringify({
+                    buyerNID: request.buyerNID,
+                    sellerNID: localStorage.getItem("nid"), // assuming seller is logged-in user
+                  }),
+                });
+              } catch (err) {
+                console.error("Failed to remove request from backend:", err);
+              }
+
+              // Redirect to chat
               window.location.href = `chat.html?partner=${request.buyerNID}&role=seller`;
             };
 

@@ -20,13 +20,13 @@ const io = socketIo(server, {
   },
 });
 const PORT = 3000;
-const SECRET_KEY = "your_secret_key"; // Replace this with an actual secret key in production
+const SECRET_KEY = "your_secret_key"; 
 
 // Middleware
 app.use(cors({ origin: "*" }));
 app.use(express.json()); // Parse JSON request bodies
-app.use("/uploads", express.static(path.join(__dirname, "uploads"))); // Serve uploaded images from the 'uploads' folder
-app.use(express.static(path.join(__dirname, "public"))); // Serve static files from 'public'
+app.use("/uploads", express.static(path.join(__dirname, "uploads"))); 
+app.use(express.static(path.join(__dirname, "public"))); 
 const missedNotificationsPath = path.join(__dirname, "notifications.json");
 // Initialize multer for file uploads
 const upload = multer({ dest: "uploads/" });
@@ -46,18 +46,17 @@ function authenticateJWT(req, res, next) {
   if (authHeader) {
     const token = authHeader.split(" ")[1];
     jwt.verify(token, SECRET_KEY, (err, user) => {
-      if (err) return res.sendStatus(403); // Forbidden if JWT verification fails
+      if (err) return res.sendStatus(403); 
       req.user = user;
-      next(); // Proceed to the next middleware/route handler
+      next(); 
     });
   } else {
-    res.sendStatus(401); // Unauthorized if token is missing
-  }
+    res.sendStatus(401); 
 }
-
+}
 function authorizeRole(role) {
   return (req, res, next) => {
-    if (req.user.role !== role) return res.sendStatus(403); // Forbidden if role doesn't match
+    if (req.user.role !== role) return res.sendStatus(403); 
     next();
   };
 }
@@ -343,14 +342,14 @@ app.post("/login", async (req, res) => {
 });
 
 // Create Block Route
-const crypto = require("crypto"); // Make sure this is at the top
+const crypto = require("crypto"); 
 
 // Create Block Route
 app.post(
   "/create-block",
   authenticateJWT,
   authorizeRole("admin"),
-  upload.fields([{ name: "dcr" }, { name: "porcha" }, { name: "dolil" }]), // Handle multiple files
+  upload.fields([{ name: "dcr" }, { name: "porcha" }, { name: "dolil" }]),
   (req, res) => {
     try {
       const { fromAddress, toAddress, fromNID, toNID, nonce } = req.body;
@@ -402,7 +401,7 @@ app.get("/blocks", authenticateJWT, authorizeRole("admin"), (req, res) => {
 app.post(
   "/verify-document",
   authenticateJWT,
-  upload.single("document"), // Single document upload
+  upload.single("document"), 
   (req, res) => {
     try {
       const { docType } = req.body;
@@ -515,7 +514,7 @@ app.post("/buy-request/:adId", authenticateJWT, (req, res) => {
   try {
     const adId = req.params.adId;
     const buyerUsername = req.user.username;
-    const buyerNID = req.user.nid; // ✅ Get buyer's NID from token
+    const buyerNID = req.user.nid; 
 
     console.log(
       `Received Buy Request: adId: ${adId}, Buyer: ${buyerUsername}, NID: ${buyerNID}`
@@ -541,7 +540,7 @@ app.post("/buy-request/:adId", authenticateJWT, (req, res) => {
     const newRequest = {
       adId: ad.id,
       adTitle: ad.title,
-      sellerNID: ad.sellerNID, // Optional if stored in ad
+      sellerNID: ad.sellerNID, 
       buyerUsername,
       buyerNID,
       timestamp: new Date().toISOString(),
@@ -549,14 +548,14 @@ app.post("/buy-request/:adId", authenticateJWT, (req, res) => {
     };
 
     // Save the new request
-    const allRequests = readBuyRequests(); // Function to read from buyRequests.json
+    const allRequests = readBuyRequests(); 
     allRequests.push(newRequest);
-    writeBuyRequests(allRequests); // Save updated requests to buyRequests.json
+    writeBuyRequests(allRequests); 
 
     // Emit a notification to the seller via socket
     const sellerSocketId = getSocketIdByNID(ad.sellerNID);
     if (sellerSocketId) {
-      io.to(sellerSocketId).emit("buy_request_notification", newRequest); // Emit the notification to seller
+      io.to(sellerSocketId).emit("buy_request_notification", newRequest); 
     }
 
     res.json({ message: "Buy request submitted successfully" });
@@ -636,20 +635,7 @@ app.get("/messages/:nid1/:nid2", authenticateJWT, (req, res) => {
   );
   res.json(chat);
 });
-//Start the server
-// app.listen(PORT, () => {
-//   console.log(`Server is running on http://localhost:${PORT}`);
-// });
-// app.get("/get-user/:nid", (req, res) => {
-//   const { nid } = req.params;
-//   const users = JSON.parse(fs.readFileSync("users.json", "utf-8"));
-//   const user = users.find((u) => u.nid === nid);
-//   if (user) {
-//     res.json({ username: user.username });
-//   } else {
-//     res.status(404).json({ error: "User not found" });
-//   }
-// });
+
 app.get("/chat-history", (req, res) => {
   const room = req.query.room;
   const messages = loadMessages().filter((msg) => msg.room === room);
@@ -671,7 +657,7 @@ app.get("/get-user-info", (req, res) => {
 
   res.json({
     username: user.username,
-    profilePic: user.profilePic || null, // assuming you store this field, or leave null
+    profilePic: user.profilePic || null, 
   });
 });
 function getUserNameByNID(partnerNID) {
@@ -680,7 +666,7 @@ function getUserNameByNID(partnerNID) {
   return user ? user.name : null;
 }
 app.get("/chat-rooms", authenticateJWT, (req, res) => {
-  const userId = req.user?.nid?.toString(); // Ensure it's a string
+  const userId = req.user?.nid?.toString(); 
 
   if (!userId) {
     return res.status(401).json({ error: "Invalid or missing user data" });
@@ -708,6 +694,22 @@ app.get("/chat-rooms", authenticateJWT, (req, res) => {
   }));
 
   res.json({ chatRooms });
+});
+
+app.post("/remove-buy-request", authenticateJWT, (req, res) => {
+  const { buyerNID, sellerNID } = req.body;
+
+  if (!buyerNID || !sellerNID) {
+    return res.status(400).json({ message: "Missing buyer or seller NID" });
+  }
+
+  let buyRequests = JSON.parse(fs.readFileSync("buyRequests.json"));
+  buyRequests = buyRequests.filter(
+    (r) => !(r.buyerNID === buyerNID && r.sellerNID === sellerNID)
+  );
+
+  fs.writeFileSync("buyRequests.json", JSON.stringify(buyRequests, null, 2));
+  res.json({ message: "Buy request removed" });
 });
 
 server.listen(PORT, () => {

@@ -4,12 +4,37 @@
     <meta charset="UTF-8" />
     <title>Chat Dashboard</title>
     <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
   </head>
   <body>
     <h2>My Chats</h2>
     <div id="chatRooms" class="block-container"></div>
+    <div id="particles-js"></div>
 
     <script>
+      particlesJS("particles-js", {
+        particles: {
+          number: { value: 80, density: { enable: true, value_area: 800 } },
+          color: { value: "#ff6347" },
+          shape: { type: "circle" },
+          opacity: { value: 0.5 },
+          size: { value: 3 },
+          line_linked: {
+            enable: true,
+            distance: 150,
+            color: "#ff6347",
+            opacity: 0.4,
+            width: 1,
+          },
+          move: { enable: true, speed: 2 },
+        },
+        interactivity: {
+          detect_on: "canvas",
+          events: { onhover: { enable: true, mode: "repulse" } },
+          modes: { repulse: { distance: 100 } },
+        },
+      });
+
       function getPartnerNID(room) {
         const myNID = localStorage.getItem("nid");
         const [id1, id2] = room.split("-");
@@ -54,7 +79,9 @@
 
             div.innerHTML = `
              <p>💬 Chat with <b>${room.partnerName}</b></p>
-              <button onclick="location.href='chat.html?partner=${partnerNID}&role=${role}'">Open Chat</button>
+             <button onclick="location.href='chat.html?partner=${partnerNID}&role=${role}'"class="open-chat-btn">
+             Open Chat</button>
+
               `;
             chatContainer.appendChild(div);
           });

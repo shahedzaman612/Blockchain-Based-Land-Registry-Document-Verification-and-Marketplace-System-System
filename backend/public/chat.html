@@ -4,101 +4,89 @@
     <meta charset="UTF-8" />
     <title>Live Chat</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <link rel="stylesheet" href="style.css" />
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        background: #121212;
-        color: #fff;
-        padding: 20px;
-      }
-      #chatBox {
-        border: 1px solid #555;
-        padding: 10px;
-        height: 300px;
-        overflow-y: scroll;
-        background: #1e1e1e;
-        display: flex;
-        flex-direction: column;
-      }
       #msgInput {
-        width: 80%;
-        padding: 8px;
+        padding: 12px;
+        border: 1px solid var(--accent-color);
+        border-radius: 20px;
+        width: 70%;
+        font-size: 16px;
+        background-color: white;
+        margin-right: 10px;
       }
+
       button {
-        padding: 8px 16px;
-        background-color: #ff6347;
+        padding: 12px 20px;
+        background-color: var(--accent-color);
         border: none;
         color: white;
+        border-radius: 20px;
+        font-size: 16px;
         cursor: pointer;
+        transition: background-color 0.3s ease;
       }
+
       button:hover {
         background-color: #e5533c;
       }
-      .notification {
-        background-color: #ff6347;
-        color: white;
-        padding: 10px;
-        border-radius: 5px;
-        cursor: pointer;
-        margin-top: 10px;
-      }
-      .notification:hover {
-        background-color: #e5533c;
-      }
-      .message {
-        padding: 8px 12px;
-        margin: 5px;
-        border-radius: 10px;
-        max-width: 70%;
-        word-wrap: break-word;
-      }
-      .sent {
-        background-color: #4caf50;
-        align-self: flex-end;
-        text-align: right;
-        margin-left: auto;
-      }
-      .received {
-        background-color: #333;
-        align-self: flex-start;
-        text-align: left;
-        margin-right: auto;
+
+      #inputContainer {
+        margin-top: 15px;
+        display: flex;
+        justify-content: center;
+        width: 90%;
+        max-width: 600px;
       }
     </style>
   </head>
   <body>
-    <h2>Live Chat</h2>
-    <div
-      id="partnerInfo"
-      style="margin-bottom: 20px; display: flex; align-items: center"
-    >
-      <img
-        id="partnerImage"
-        src=""
-        alt="Partner's Avatar"
-        style="
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          margin-right: 10px;
-        "
-      />
-      <span id="partnerName" style="font-size: 18px; font-weight: bold"></span>
+    <h1>Live Chat</h1>
+    <div id="partnerInfo">
+      <img id="partnerImage" src="" alt="Partner's Avatar" />
+      <span id="partnerName"></span>
     </div>
+
     <div id="chatBox"></div>
-    <br />
-    <input type="text" id="msgInput" placeholder="Type your message..." />
-    <button onclick="sendMessage()">Send</button>
+
+    <div id="inputContainer">
+      <input type="text" id="msgInput" placeholder="Type your message..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
 
     <div id="notificationBox"></div>
+    <div id="particles-js"></div>
 
     <script>
+      particlesJS("particles-js", {
+        particles: {
+          number: { value: 80, density: { enable: true, value_area: 800 } },
+          color: { value: "#ff6347" },
+          shape: { type: "circle" },
+          opacity: { value: 0.5 },
+          size: { value: 3 },
+          line_linked: {
+            enable: true,
+            distance: 150,
+            color: "#ff6347",
+            opacity: 0.4,
+            width: 1,
+          },
+          move: { enable: true, speed: 2 },
+        },
+        interactivity: {
+          detect_on: "canvas",
+          events: { onhover: { enable: true, mode: "repulse" } },
+          modes: { repulse: { distance: 100 } },
+        },
+      });
+
       const socket = io("http://localhost:3000");
       const urlParams = new URLSearchParams(window.location.search);
       const partnerNID = urlParams.get("partner");
       const role = urlParams.get("role");
       const myNID = localStorage.getItem("nid");
-      const partner = urlParams.get("partner");
 
       if (!myNID) {
         alert("Missing NID. Redirecting...");
@@ -116,11 +104,10 @@
       fetch(`/get-user-info?nid=${partnerNID}`)
         .then((res) => res.json())
         .then((userData) => {
-          const partnerNameElem = document.getElementById("partnerName");
-          const partnerImageElem = document.getElementById("partnerImage");
-
-          partnerNameElem.textContent = userData.username || "Unknown";
-          partnerImageElem.src = userData.profilePic || "/default-avatar.jpg";
+          document.getElementById("partnerName").textContent =
+            userData.username || "Unknown";
+          document.getElementById("partnerImage").src =
+            userData.profilePic || "/default-avatar.jpg";
         });
 
       socket.emit("join_room", room);
