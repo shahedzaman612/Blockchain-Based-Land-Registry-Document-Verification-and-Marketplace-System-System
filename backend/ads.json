@@ -56,5 +56,15 @@
     "imagePath": "/uploads/ef1a77ade8b0d8d20f603029c758081a",
     "postedBy": "yunose",
     "sellerNID": "456789123"
+  },
+  {
+    "id": 1746714179005,
+    "title": "100 kani jomi",
+    "price": "600000",
+    "description": "onek valo jomi",
+    "imagePath": "/uploads/e3d0cff0636edf10ad0887d4ace4f9d2",
+    "postedBy": "yunose",
+    "sellerNID": "456789123",
+    "displayName": "Anonymous"
   }
 ]

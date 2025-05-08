@@ -118,5 +118,14 @@
     "buyerNID": "456789123",
     "timestamp": "2025-05-04T10:47:09.861Z",
     "message": "A buyer is interested in your land ad: \"5000 feet land \"."
+  },
+  {
+    "adId": 1746714179005,
+    "adTitle": "100 kani jomi",
+    "sellerNID": "456789123",
+    "buyerUsername": "yunose",
+    "buyerNID": "456789123",
+    "timestamp": "2025-05-08T14:23:13.825Z",
+    "message": "A buyer is interested in your land ad: \"100 kani jomi\"."
   }
 ]

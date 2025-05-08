@@ -434,7 +434,7 @@ app.post(
 // Post Ad Route
 app.post("/post-ad", authenticateJWT, upload.single("image"), (req, res) => {
   try {
-    const { title, price, description } = req.body;
+    const { title, price, description, posterName } = req.body;
     const imagePath = req.file?.path;
     if (!imagePath) return res.status(400).json({ message: "Image required" });
 
@@ -446,6 +446,7 @@ app.post("/post-ad", authenticateJWT, upload.single("image"), (req, res) => {
       imagePath: `/uploads/${path.basename(imagePath)}`,
       postedBy: req.user.username,
       sellerNID: req.user.nid,
+      displayName: posterName || req.user.username,  // 👈 Only used for display
     };
 
     const ads = readAds();
@@ -458,6 +459,7 @@ app.post("/post-ad", authenticateJWT, upload.single("image"), (req, res) => {
     res.status(500).json({ message: "Failed to post ad" });
   }
 });
+
 
 // Get Ads Route
 app.get("/ads", authenticateJWT, (req, res) => {

@@ -41,6 +41,11 @@
       <label>Upload Land Image:</label>
       <input type="file" name="image" accept="image/*" required />
 
+      <label>
+        <input type="checkbox" id="anonymousCheck" />
+        Post as Anonymous
+      </label>
+
       <button type="submit">Post Ad</button>
     </form>
 
@@ -78,6 +83,12 @@
         e.preventDefault();
         const formData = new FormData(form);
         const token = localStorage.getItem("token");
+
+        // Check if the anonymous checkbox is selected
+        const isAnonymous = document.getElementById("anonymousCheck").checked;
+        if (isAnonymous) {
+          formData.append("posterName", "Anonymous");
+        }
 
         try {
           const response = await fetch("http://localhost:3000/post-ad", {
