@@ -72,12 +72,15 @@
           const blockCard = document.createElement("div");
           blockCard.className = "block-card";
           blockCard.innerHTML = `
-            <strong>Block #${block.blockNumber}</strong><br>
-            Transaction ID: ${block.transactionId}<br>
-            From: ${block.from} (NID: ${block.fromNID})<br>
-            To: ${block.to} (NID: ${block.toNID})<br>
-            Timestamp: ${new Date(block.timestamp).toLocaleString()}<br>
-            Hash: ${block.hash}<br>
+          <strong>Block #${block.blockNumber}</strong><br>
+          Transaction ID: ${block.transactionId}<br>
+          From: ${block.from} (NID: ${block.fromNID})<br>
+          To: ${block.to} (NID: ${block.toNID})<br>
+          Timestamp: ${new Date(block.timestamp).toLocaleString()}<br>
+          Hash: ${block.hash}<br>
+          <span style="word-break: break-all;"><strong>Previous Hash:</strong> ${
+            block.previousHash
+          }</span><br>
           `;
           blocksDiv.appendChild(blockCard);
         });
