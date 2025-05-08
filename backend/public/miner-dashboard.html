@@ -2,13 +2,51 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Minar Dashboard - Pending Land Submissions</title>
+    <title>Miner Dashboard</title>
     <link rel="stylesheet" href="style.css" />
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <style>
+      button {
+        padding: 10px 18px;
+        margin: 8px 5px;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: bold;
+      }
+
+      button:hover {
+        transform: scale(1.05);
+      }
+
+      button:active {
+        transform: scale(0.98);
+      }
+
+      button.approve {
+        background-color: #4caf50;
+        color: white;
+      }
+
+      button.approve:hover {
+        background-color: #45a049;
+      }
+
+      button.reject {
+        background-color: #f44336;
+        color: white;
+      }
+
+      button.reject:hover {
+        background-color: #e53935;
+      }
+    </style>
   </head>
   <body>
     <div id="particles-js"></div>
-    <h1>Minar Dashboard – Pending Land Submissions</h1>
+    <h1>Miner Dashboard – Pending Land Submissions</h1>
     <div id="submissions"></div>
 
     <script>
@@ -76,12 +114,23 @@
               <p><strong>Nonce:</strong> ${s.nonce}</p>
               <p><strong>Submitted By:</strong> ${s.submittedBy}</p>
               <div class="docs">
-                <a href="${s.docs.dcr}" target="_blank">View DCR</a>
-                <a href="${s.docs.porcha}" target="_blank">View Porcha</a>
-                <a href="${s.docs.dolil}" target="_blank">View Dolil</a>
+              <div class="docs">
+                <div>
+                  <p><strong>DCR:</strong></p>
+                  <img src="${s.docs.dcr}" alt="DCR Document" class="doc-img" />
+                </div>
+                <div>
+                  <p><strong>Porcha:</strong></p>
+                  <img src="${s.docs.porcha}" alt="Porcha Document" class="doc-img" />
+                </div>
+                <div>
+                  <p><strong>Dolil:</strong></p>
+                  <img src="${s.docs.dolil}" alt="Dolil Document" class="doc-img" />
+                </div>
               </div>
-              <button onclick="approveSubmission('${s.id}')">✅ Approve & Mine Block</button>
-              <button onclick="rejectSubmission('${s.id}')">❌ Reject</button>
+              <button class="approve" onclick="approveSubmission('${s.id}')">✅ Approve</button>
+              <button class="reject" onclick="rejectSubmission('${s.id}')">❌ Reject</button>
+
             `;
             submissionsDiv.appendChild(el);
           });
@@ -92,13 +141,17 @@
 
       // Approve handler
       async function approveSubmission(id) {
-        if (!confirm("Are you sure you want to approve and mine this block?")) return;
+        if (!confirm("Are you sure you want to approve and mine this block?"))
+          return;
 
         try {
-          const res = await fetch(`http://localhost:3000/approve-submission/${id}`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          const res = await fetch(
+            `http://localhost:3000/approve-submission/${id}`,
+            {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
 
           const data = await res.json();
           if (res.ok) {
@@ -114,13 +167,17 @@
 
       // Reject handler
       async function rejectSubmission(id) {
-        if (!confirm("Are you sure you want to reject this submission?")) return;
+        if (!confirm("Are you sure you want to reject this submission?"))
+          return;
 
         try {
-          const res = await fetch(`http://localhost:3000/reject-submission/${id}`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          const res = await fetch(
+            `http://localhost:3000/reject-submission/${id}`,
+            {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
 
           const data = await res.json();
           if (res.ok) {
