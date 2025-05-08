@@ -9,12 +9,12 @@
     "username": "Rafi",
     "nid": "789456123",
     "password": "$2b$10$7mH5o/sZhfaD3gQyrKKsyuZ9IQhP77zeFKxfnBEd6o/zkKgcoYX.e",
-    "role": "admin"
+    "role": "miner"
   },
   {
     "username": "yunose",
     "nid": "456789123",
     "password": "$2b$10$kWFo793rf7mXt0D3Dn9/cuK0g/pL4WQ5dyB5WQQbXlc2fQ5PW/G/m",
-    "role": "admin"
+    "role": "user"
   }
 ]

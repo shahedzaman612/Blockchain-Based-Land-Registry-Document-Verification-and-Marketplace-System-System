@@ -20,13 +20,13 @@ const io = socketIo(server, {
   },
 });
 const PORT = 3000;
-const SECRET_KEY = "your_secret_key"; 
+const SECRET_KEY = "your_secret_key";
 
 // Middleware
 app.use(cors({ origin: "*" }));
 app.use(express.json()); // Parse JSON request bodies
-app.use("/uploads", express.static(path.join(__dirname, "uploads"))); 
-app.use(express.static(path.join(__dirname, "public"))); 
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use(express.static(path.join(__dirname, "public")));
 const missedNotificationsPath = path.join(__dirname, "notifications.json");
 // Initialize multer for file uploads
 const upload = multer({ dest: "uploads/" });
@@ -46,20 +46,23 @@ function authenticateJWT(req, res, next) {
   if (authHeader) {
     const token = authHeader.split(" ")[1];
     jwt.verify(token, SECRET_KEY, (err, user) => {
-      if (err) return res.sendStatus(403); 
+      if (err) return res.sendStatus(403);
       req.user = user;
-      next(); 
+      next();
     });
   } else {
-    res.sendStatus(401); 
+    res.sendStatus(401);
+  }
 }
-}
-function authorizeRole(role) {
+function authorizeRole(...allowedRoles) {
   return (req, res, next) => {
-    if (req.user.role !== role) return res.sendStatus(403); 
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      return res.sendStatus(403); // Forbidden
+    }
     next();
   };
 }
+
 function getUsernameFromNID(nid) {
   const user = users.find((u) => u.nid === nid);
   return user ? user.username : nid;
@@ -342,7 +345,7 @@ app.post("/login", async (req, res) => {
 });
 
 // Create Block Route
-const crypto = require("crypto"); 
+const crypto = require("crypto");
 
 // Create Block Route
 app.post(
@@ -392,16 +395,21 @@ app.post(
 );
 
 // View All Blocks (Admin)
-app.get("/blocks", authenticateJWT, authorizeRole("admin"), (req, res) => {
-  const { blockchain } = require("./blockchain");
-  res.json(blockchain);
-});
+app.get(
+  "/blocks",
+  authenticateJWT,
+  authorizeRole("admin", "miner"),
+  (req, res) => {
+    const { blockchain } = require("./blockchain");
+    res.json(blockchain);
+  }
+);
 
 // Verify Document Route
 app.post(
   "/verify-document",
   authenticateJWT,
-  upload.single("document"), 
+  upload.single("document"),
   (req, res) => {
     try {
       const { docType } = req.body;
@@ -514,7 +522,7 @@ app.post("/buy-request/:adId", authenticateJWT, (req, res) => {
   try {
     const adId = req.params.adId;
     const buyerUsername = req.user.username;
-    const buyerNID = req.user.nid; 
+    const buyerNID = req.user.nid;
 
     console.log(
       `Received Buy Request: adId: ${adId}, Buyer: ${buyerUsername}, NID: ${buyerNID}`
@@ -540,7 +548,7 @@ app.post("/buy-request/:adId", authenticateJWT, (req, res) => {
     const newRequest = {
       adId: ad.id,
       adTitle: ad.title,
-      sellerNID: ad.sellerNID, 
+      sellerNID: ad.sellerNID,
       buyerUsername,
       buyerNID,
       timestamp: new Date().toISOString(),
@@ -548,14 +556,14 @@ app.post("/buy-request/:adId", authenticateJWT, (req, res) => {
     };
 
     // Save the new request
-    const allRequests = readBuyRequests(); 
+    const allRequests = readBuyRequests();
     allRequests.push(newRequest);
-    writeBuyRequests(allRequests); 
+    writeBuyRequests(allRequests);
 
     // Emit a notification to the seller via socket
     const sellerSocketId = getSocketIdByNID(ad.sellerNID);
     if (sellerSocketId) {
-      io.to(sellerSocketId).emit("buy_request_notification", newRequest); 
+      io.to(sellerSocketId).emit("buy_request_notification", newRequest);
     }
 
     res.json({ message: "Buy request submitted successfully" });
@@ -657,7 +665,7 @@ app.get("/get-user-info", (req, res) => {
 
   res.json({
     username: user.username,
-    profilePic: user.profilePic || null, 
+    profilePic: user.profilePic || null,
   });
 });
 function getUserNameByNID(partnerNID) {
@@ -666,7 +674,7 @@ function getUserNameByNID(partnerNID) {
   return user ? user.name : null;
 }
 app.get("/chat-rooms", authenticateJWT, (req, res) => {
-  const userId = req.user?.nid?.toString(); 
+  const userId = req.user?.nid?.toString();
 
   if (!userId) {
     return res.status(401).json({ error: "Invalid or missing user data" });
@@ -711,7 +719,193 @@ app.post("/remove-buy-request", authenticateJWT, (req, res) => {
   fs.writeFileSync("buyRequests.json", JSON.stringify(buyRequests, null, 2));
   res.json({ message: "Buy request removed" });
 });
+app.post(
+  "/submit-land",
+  authenticateJWT, // Ensure the user is authenticated
+  authorizeRole("user"), // Only users with "user" role can submit land info
+  upload.fields([{ name: "dcr" }, { name: "porcha" }, { name: "dolil" }]), // Handle file uploads
+  (req, res) => {
+    try {
+      // Ensure required fields are present
+      const { fromAddress, toAddress, fromNID, toNID, nonce } = req.body;
+      if (!fromAddress || !toAddress || !fromNID || !toNID || !nonce) {
+        return res.status(400).json({ message: "All fields are required." });
+      }
 
+      // Ensure all documents are uploaded
+      if (
+        !req.files?.dcr?.[0] ||
+        !req.files?.porcha?.[0] ||
+        !req.files?.dolil?.[0]
+      ) {
+        return res.status(400).json({ message: "All documents are required." });
+      }
+
+      // Log the request data for debugging
+      console.log("REQ BODY:", req.body);
+      console.log("REQ FILES:", req.files);
+
+      // Generate the land submission object
+      const submission = {
+        id: crypto.randomUUID(),
+        from: fromAddress,
+        fromNID,
+        to: toAddress,
+        toNID,
+        nonce,
+        docs: {
+          dcr: req.files["dcr"][0].path,
+          porcha: req.files["porcha"][0].path,
+          dolil: req.files["dolil"][0].path,
+        },
+        status: "pending", // Initially pending for approval by the miner
+        submittedBy: req.user.username, // Submitted by the logged-in user
+        submittedAt: new Date().toISOString(),
+      };
+
+      // Read existing submissions from the file
+      let submissions = [];
+      try {
+        const data = fs.readFileSync("submissions.json", "utf-8");
+        submissions = data ? JSON.parse(data) : [];
+      } catch (err) {
+        console.warn("Error reading submissions.json, creating a new one.");
+      }
+
+      // Push the new submission
+      submissions.push(submission);
+
+      // Ensure the uploads folder exists
+      if (!fs.existsSync("uploads")) {
+        fs.mkdirSync("uploads");
+      }
+
+      // Write the updated submissions to the file
+      fs.writeFileSync(
+        "submissions.json",
+        JSON.stringify(submissions, null, 2)
+      );
+
+      // Send a successful response
+      res.json({ message: "Submission successful", submission });
+    } catch (err) {
+      console.error("Land submission error:", err.stack || err);
+      res
+        .status(500)
+        .json({ message: "Failed to submit land info", error: err.message });
+    }
+  }
+);
+app.get(
+  "/pending-submissions",
+  authenticateJWT,
+  authorizeRole("miner", "admin"),
+  (req, res) => {
+    try {
+      const data = fs.readFileSync("submissions.json", "utf-8");
+      const submissions = JSON.parse(data).filter(
+        (s) => s.status === "pending"
+      );
+      res.json(submissions);
+    } catch (err) {
+      console.error("Error reading submissions:", err);
+      res.status(500).json({ message: "Failed to load submissions" });
+    }
+  }
+);
+app.post(
+  "/approve-submission/:id",
+  authenticateJWT,
+  authorizeRole("miner", "admin"),
+
+  (req, res) => {
+    try {
+      const id = req.params.id;
+      const submissions = JSON.parse(
+        fs.readFileSync("submissions.json", "utf-8")
+      );
+      const submissionIndex = submissions.findIndex((s) => s.id === id);
+
+      if (submissionIndex === -1) {
+        return res.status(404).json({ message: "Submission not found" });
+      }
+
+      const submission = submissions[submissionIndex];
+
+      // Mark as approved
+      submissions[submissionIndex].status = "approved";
+      fs.writeFileSync(
+        "submissions.json",
+        JSON.stringify(submissions, null, 2)
+      );
+      const transactionId = crypto
+        .createHash("sha256")
+        .update(Date.now() + Math.random().toString())
+        .digest("hex")
+        .substring(0, 12); // shorten for readability
+      // --- Create a new block ---
+      const chain = JSON.parse(fs.readFileSync("blockchain.json", "utf-8"));
+      const previousBlock = chain[chain.length - 1];
+      const timestamp = new Date().toISOString();
+      const newBlock = {
+        blockNumber: chain.length + 1,
+        timestamp,
+        transactionId: transactionId,
+        from: submission.from,
+        fromNID: submission.fromNID,
+        to: submission.to,
+        toNID: submission.toNID,
+        nonce: submission.nonce,
+        docs: submission.docs,
+        previousHash: previousBlock.hash,
+      };
+
+      const blockString = JSON.stringify(newBlock);
+      newBlock.hash = crypto
+        .createHash("sha256")
+        .update(blockString)
+        .digest("hex");
+
+      chain.push(newBlock);
+      fs.writeFileSync("blockchain.json", JSON.stringify(chain, null, 2));
+
+      res.json({ message: "Block mined successfully", block: newBlock });
+    } catch (err) {
+      console.error("Approve submission error:", err);
+      res.status(500).json({ message: "Failed to approve submission" });
+    }
+  }
+);
+app.post(
+  "/reject-submission/:id",
+  authenticateJWT,
+  authorizeRole("miner"),
+  (req, res) => {
+    try {
+      const id = req.params.id;
+      const submissions = JSON.parse(
+        fs.readFileSync("submissions.json", "utf-8")
+      );
+      const submissionIndex = submissions.findIndex((s) => s.id === id);
+
+      if (submissionIndex === -1) {
+        return res.status(404).json({ message: "Submission not found" });
+      }
+
+      // Remove the submission
+      submissions.splice(submissionIndex, 1);
+      fs.writeFileSync(
+        "submissions.json",
+        JSON.stringify(submissions, null, 2)
+      );
+
+      res.json({ message: "Submission rejected" });
+    } catch (err) {
+      console.error("Reject submission error:", err);
+      res.status(500).json({ message: "Failed to reject submission" });
+    }
+  }
+);
 server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

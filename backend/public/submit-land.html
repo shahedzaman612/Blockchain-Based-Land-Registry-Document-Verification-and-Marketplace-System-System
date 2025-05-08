@@ -4,70 +4,75 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Submit Land</title>
-    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
     <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
   </head>
   <body>
     <div id="particles-js"></div>
 
-    <h1>Submit New Land Ownership Info</h1>
+    <h1 style="text-align: center">Submit Land for Approval</h1>
 
     <form id="submitForm" enctype="multipart/form-data">
-      <a href="index.html" class="">⬅️ Back to Home</a>
-      <label for="transactionId">Transaction ID:</label>
-      <input type="text" id="transactionId" name="transactionId" required />
+      <a href="index.html" class="back-button">⬅️ Back to Home</a>
+      <label for="fromAddress">Seller Name:</label>
+      <input type="text" name="fromAddress" id="fromAddress" required />
 
-      <label for="fromAddress">From (Seller):</label>
-      <input type="text" id="fromAddress" name="fromAddress" required />
+      <label for="fromNID">Seller NID:</label>
+      <input type="text" name="fromNID" id="fromNID" required />
 
-      <label for="toAddress">To (Buyer):</label>
-      <input type="text" id="toAddress" name="toAddress" required />
+      <label for="toAddress">Buyer Name:</label>
+      <input type="text" name="toAddress" id="toAddress" required />
+
+      <label for="toNID">Buyer NID:</label>
+      <input type="text" name="toNID" id="toNID" required />
+
+      <label for="nonce">Nonce:</label>
+      <input type="text" name="nonce" id="nonce" required />
 
       <label for="dcr">DCR Document:</label>
       <input
         type="file"
-        id="dcr"
         name="dcr"
-        accept=".png,.jpg,.jpeg,.pdf"
+        id="dcr"
+        accept=".jpg,.jpeg,.png,.pdf"
         required
       />
 
       <label for="porcha">Porcha Document:</label>
       <input
         type="file"
-        id="porcha"
         name="porcha"
-        accept=".png,.jpg,.jpeg,.pdf"
+        id="porcha"
+        accept=".jpg,.jpeg,.png,.pdf"
         required
       />
 
       <label for="dolil">Dolil Document:</label>
       <input
         type="file"
-        id="dolil"
         name="dolil"
-        accept=".png,.jpg,.jpeg,.pdf"
+        id="dolil"
+        accept=".jpg,.jpeg,.png,.pdf"
         required
       />
 
-      <button type="submit">Submit for Mining</button>
+      <button type="submit">Submit for Mining Approval</button>
     </form>
 
     <div id="popup" class="popup"></div>
 
     <script>
-      // Initialize particles.js with configuration (can be customized)
       particlesJS("particles-js", {
         particles: {
-          number: { value: 80, density: { enable: true, value_area: 800 } },
-          color: { value: "#ff6347" }, // Match accent color
+          number: { value: 60, density: { enable: true, value_area: 800 } },
+          color: { value: "#00bcd4" },
           shape: { type: "circle" },
           opacity: { value: 0.5 },
           size: { value: 3 },
           line_linked: {
             enable: true,
             distance: 150,
-            color: "#ff6347", // Match accent color
+            color: "#00bcd4",
             opacity: 0.4,
             width: 1,
           },
@@ -80,56 +85,48 @@
         },
       });
 
-      // Function to show popup messages
-      function showPopup(message, isError = false) {
-        const popup = document.getElementById("popup");
-        popup.textContent = message;
-        popup.className = "popup show"; // Add 'show' class to make it visible
-        if (isError) popup.classList.add("error"); // Add 'error' class for error styling
-        setTimeout(() => {
-          popup.className = "popup"; // Remove classes to hide popup after delay
-        }, 3000); // Hide after 3 seconds
-      }
-
-      // Client-side authentication check (optional, add if needed for this page)
-      // const token = localStorage.getItem("token");
-      // if (!token) {
-      //   showPopup("❌ You must be logged in.", true);
-      //   setTimeout(() => {
-      //     window.location.href = "login.html";
-      //   }, 2000);
-      // }
-
       const form = document.getElementById("submitForm");
+      const popup = document.getElementById("popup");
+
+      function showPopup(message, isError = false) {
+        popup.textContent = message;
+        popup.className = `popup show${isError ? " error" : ""}`;
+        setTimeout(() => {
+          popup.classList.remove("show");
+        }, 3000);
+      }
 
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
+
         const formData = new FormData(form);
-        const token = localStorage.getItem("token"); // Get token from local storage
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+          showPopup("❌ You must be logged in to submit land", true);
+          return;
+        }
 
         try {
-          const response = await fetch("http://localhost:3000/create-block", {
+          const res = await fetch("http://localhost:3000/submit-land", {
             method: "POST",
             headers: {
-              // Include authorization token in headers
               Authorization: `Bearer ${token}`,
             },
-            body: formData, // Send form data as the request body
+            body: formData,
           });
 
-          const data = await response.json();
+          const data = await res.json();
 
-          // Display success or error message using the popup
-          if (response.ok) {
-            // Check if the response status is in the 200-299 range
-            showPopup("✅ Land submitted successfully!");
-            form.reset(); // Reset the form on success
+          if (res.ok) {
+            showPopup("✅ Land submitted for miner approval.");
+            form.reset();
           } else {
-            showPopup(`❌ ${data.message || "Error submitting land."}`, true); // Show error message from backend or generic error
+            showPopup(`❌ ${data.message || "Submission failed."}`, true);
           }
-        } catch (error) {
-          console.error("Fetch error:", error); // Log the error for debugging
-          showPopup("❌ An error occurred.", true); // Show generic error message for fetch errors
+        } catch (err) {
+          console.error("Submission error:", err);
+          showPopup("❌ Network error occurred", true);
         }
       });
     </script>

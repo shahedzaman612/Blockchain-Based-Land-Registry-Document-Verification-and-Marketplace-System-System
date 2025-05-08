@@ -2,69 +2,27 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Minar Dashboard</title>
+    <title>Minar Dashboard - Pending Land Submissions</title>
     <link rel="stylesheet" href="style.css" />
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
-    <script>
-      const token = localStorage.getItem("token");
-      if (!token) {
-        alert("❌ You must be logged in.");
-        window.location.href = "login.html";
-      }
-    </script>
-    <style>
-      #particles-js {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: -1;
-      }
-
-      .block-card button {
-        margin-top: 10px;
-        padding: 10px 20px;
-        background-color: var(--accent-color);
-        color: white;
-        border: none;
-        border-radius: 20px;
-        cursor: pointer;
-        font-size: 16px;
-        transition: background-color 0.3s ease;
-      }
-
-      .block-card button:hover {
-        background-color: #cc4c36;
-      }
-    </style>
   </head>
   <body>
     <div id="particles-js"></div>
-
-    <h1>Minar Dashboard</h1>
-
-    <h2>🛠️ Pending Land Submissions</h2>
-    <div id="pendingBlocks" class="block-container"></div>
-
-    <h2>💼 Buy Requests</h2>
-    <div id="buyRequests" class="block-container"></div>
-
-    <a href="index.html" class="back-button">⬅️ Back to Home</a>
-    <div id="popup" class="popup"></div>
+    <h1>Minar Dashboard – Pending Land Submissions</h1>
+    <div id="submissions"></div>
 
     <script>
       particlesJS("particles-js", {
         particles: {
-          number: { value: 80, density: { enable: true, value_area: 800 } },
-          color: { value: "#ff6347" },
+          number: { value: 60, density: { enable: true, value_area: 800 } },
+          color: { value: "#00bcd4" },
           shape: { type: "circle" },
           opacity: { value: 0.5 },
           size: { value: 3 },
           line_linked: {
             enable: true,
             distance: 150,
-            color: "#ff6347",
+            color: "#00bcd4",
             opacity: 0.4,
             width: 1,
           },
@@ -76,122 +34,86 @@
           modes: { repulse: { distance: 100 } },
         },
       });
+      const token = localStorage.getItem("token");
+      const submissionsDiv = document.getElementById("submissions");
 
-      function showPopup(message, isError = false) {
-        const popup = document.getElementById("popup");
-        popup.textContent = message;
-        popup.className = "popup show";
-        if (isError) popup.classList.add("error");
-        setTimeout(() => {
-          popup.className = "popup";
-        }, 3000);
+      if (!token) {
+        alert("Please login as a Minar to view this page.");
+        window.location.href = "/login.html";
       }
 
-      async function fetchPending() {
+      // Load pending submissions
+      async function loadSubmissions() {
         try {
-          const res = await fetch("http://localhost:3000/pending-blocks", {
+          const res = await fetch("http://localhost:3000/pending-submissions", {
             headers: { Authorization: `Bearer ${token}` },
           });
-          const blocks = await res.json();
-          const container = document.getElementById("pendingBlocks");
 
-          if (!blocks.length) {
-            container.innerHTML = "<p>No pending land submissions.</p>";
+          if (!res.ok) {
+            const text = await res.text(); // fallback if not JSON
+            alert("Error: " + text);
             return;
           }
 
-          blocks.forEach((block) => {
-            const div = document.createElement("div");
-            div.className = "block-card";
-            div.innerHTML = `
-              <p><strong>Transaction ID:</strong> ${block.transactionId}</p>
-              <p><strong>From:</strong> ${block.fromAddress}</p>
-              <p><strong>To:</strong> ${block.toAddress}</p>
-              <p><strong>Submitted By:</strong> ${block.submittedBy}</p>
-              <button onclick="mineBlock('${block.id}')">⛏️ Mine This Block</button>
-            `;
-            container.appendChild(div);
-          });
-        } catch (err) {
-          showPopup("❌ Failed to load pending blocks.", true);
-        }
-      }
-
-      async function mineBlock(id) {
-        try {
-          const res = await fetch(`http://localhost:3000/mine-land/${id}`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-          });
           const data = await res.json();
-          if (res.ok) {
-            showPopup("✅ Block mined successfully!");
-            location.reload();
-          } else {
-            showPopup("❌ Mining failed.", true);
-          }
-        } catch (error) {
-          showPopup("❌ Mining failed.", true);
-        }
-      }
 
-      async function fetchBuyRequests() {
-        try {
-          const res = await fetch("http://localhost:3000/buy-requests", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const requests = await res.json();
-          const container = document.getElementById("buyRequests");
-
-          if (!requests.length) {
-            container.innerHTML = "<p>No buy requests.</p>";
+          if (data.length === 0) {
+            submissionsDiv.innerHTML =
+              "<p style='text-align:center'>No pending submissions.</p>";
             return;
           }
 
-          requests.forEach((req) => {
-            const div = document.createElement("div");
-            div.className = "block-card";
-            div.innerHTML = `
-              <p><strong>Request ID:</strong> ${req.id}</p>
-              <p><strong>Ad ID:</strong> ${req.adId}</p>
-              <p><strong>Buyer:</strong> ${req.buyer}</p>
-              <p><strong>Status:</strong> ${req.status}</p>
-              ${
-                req.status === "pending"
-                  ? `<button onclick="confirmTransaction('${req.id}')">✅ Confirm Transaction</button>`
-                  : `<p>✅ Transaction already confirmed</p>`
-              }
-            `;
-            container.appendChild(div);
+          submissionsDiv.innerHTML = "";
+          data.forEach((s) => {
+            const el = document.createElement("div");
+            el.className = "submission";
+            el.innerHTML = `
+            <h3>Submission ID: ${s.id}</h3>
+            <p><strong>From:</strong> ${s.from} (${s.fromNID})</p>
+            <p><strong>To:</strong> ${s.to} (${s.toNID})</p>
+            <p><strong>Nonce:</strong> ${s.nonce}</p>
+            <p><strong>Submitted By:</strong> ${s.submittedBy}</p>
+            <div class="docs">
+              <a href="${s.docs.dcr}" target="_blank">View DCR</a>
+              <a href="${s.docs.porcha}" target="_blank">View Porcha</a>
+              <a href="${s.docs.dolil}" target="_blank">View Dolil</a>
+            </div>
+            <button onclick="approveSubmission('${s.id}')">✅ Approve & Mine Block</button>
+          `;
+            submissionsDiv.appendChild(el);
           });
         } catch (err) {
-          showPopup("❌ Failed to load buy requests.", true);
+          console.error("Failed to load submissions:", err);
         }
       }
 
-      async function confirmTransaction(requestId) {
+      async function approveSubmission(id) {
+        if (!confirm("Are you sure you want to approve and mine this block?"))
+          return;
+
         try {
           const res = await fetch(
-            `http://localhost:3000/confirm-transaction/${requestId}`,
+            `http://localhost:3000/approve-submission/${id}`,
             {
               method: "POST",
               headers: { Authorization: `Bearer ${token}` },
             }
           );
+
           const data = await res.json();
           if (res.ok) {
-            showPopup("✅ Transaction confirmed and block created.");
-            location.reload();
+            alert("✅ Block mined successfully!");
+            loadSubmissions(); // reload
           } else {
-            showPopup("❌ Confirmation failed.", true);
+            alert("❌ " + data.message);
           }
         } catch (err) {
-          showPopup("❌ Transaction confirmation failed.", true);
+          alert("❌ Network error.");
         }
       }
 
-      fetchPending();
-      fetchBuyRequests();
+      loadSubmissions();
     </script>
+    <a href="index.html" class="back-button">⬅️ Back to Home</a>
   </body>
 </html>
