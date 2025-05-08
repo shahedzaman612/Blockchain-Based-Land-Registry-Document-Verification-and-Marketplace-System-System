@@ -12,6 +12,7 @@
     <div id="submissions"></div>
 
     <script>
+      // Particle effect
       particlesJS("particles-js", {
         particles: {
           number: { value: 60, density: { enable: true, value_area: 800 } },
@@ -34,6 +35,7 @@
           modes: { repulse: { distance: 100 } },
         },
       });
+
       const token = localStorage.getItem("token");
       const submissionsDiv = document.getElementById("submissions");
 
@@ -50,7 +52,7 @@
           });
 
           if (!res.ok) {
-            const text = await res.text(); // fallback if not JSON
+            const text = await res.text();
             alert("Error: " + text);
             return;
           }
@@ -68,18 +70,19 @@
             const el = document.createElement("div");
             el.className = "submission";
             el.innerHTML = `
-            <h3>Submission ID: ${s.id}</h3>
-            <p><strong>From:</strong> ${s.from} (${s.fromNID})</p>
-            <p><strong>To:</strong> ${s.to} (${s.toNID})</p>
-            <p><strong>Nonce:</strong> ${s.nonce}</p>
-            <p><strong>Submitted By:</strong> ${s.submittedBy}</p>
-            <div class="docs">
-              <a href="${s.docs.dcr}" target="_blank">View DCR</a>
-              <a href="${s.docs.porcha}" target="_blank">View Porcha</a>
-              <a href="${s.docs.dolil}" target="_blank">View Dolil</a>
-            </div>
-            <button onclick="approveSubmission('${s.id}')">✅ Approve & Mine Block</button>
-          `;
+              <h3>Submission ID: ${s.id}</h3>
+              <p><strong>From:</strong> ${s.from} (${s.fromNID})</p>
+              <p><strong>To:</strong> ${s.to} (${s.toNID})</p>
+              <p><strong>Nonce:</strong> ${s.nonce}</p>
+              <p><strong>Submitted By:</strong> ${s.submittedBy}</p>
+              <div class="docs">
+                <a href="${s.docs.dcr}" target="_blank">View DCR</a>
+                <a href="${s.docs.porcha}" target="_blank">View Porcha</a>
+                <a href="${s.docs.dolil}" target="_blank">View Dolil</a>
+              </div>
+              <button onclick="approveSubmission('${s.id}')">✅ Approve & Mine Block</button>
+              <button onclick="rejectSubmission('${s.id}')">❌ Reject</button>
+            `;
             submissionsDiv.appendChild(el);
           });
         } catch (err) {
@@ -87,23 +90,42 @@
         }
       }
 
+      // Approve handler
       async function approveSubmission(id) {
-        if (!confirm("Are you sure you want to approve and mine this block?"))
-          return;
+        if (!confirm("Are you sure you want to approve and mine this block?")) return;
 
         try {
-          const res = await fetch(
-            `http://localhost:3000/approve-submission/${id}`,
-            {
-              method: "POST",
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
+          const res = await fetch(`http://localhost:3000/approve-submission/${id}`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
 
           const data = await res.json();
           if (res.ok) {
             alert("✅ Block mined successfully!");
-            loadSubmissions(); // reload
+            loadSubmissions();
+          } else {
+            alert("❌ " + data.message);
+          }
+        } catch (err) {
+          alert("❌ Network error.");
+        }
+      }
+
+      // Reject handler
+      async function rejectSubmission(id) {
+        if (!confirm("Are you sure you want to reject this submission?")) return;
+
+        try {
+          const res = await fetch(`http://localhost:3000/reject-submission/${id}`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const data = await res.json();
+          if (res.ok) {
+            alert("❌ Submission rejected.");
+            loadSubmissions();
           } else {
             alert("❌ " + data.message);
           }
@@ -114,6 +136,7 @@
 
       loadSubmissions();
     </script>
+
     <a href="index.html" class="back-button">⬅️ Back to Home</a>
   </body>
 </html>

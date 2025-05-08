@@ -879,33 +879,22 @@ app.post(
 app.post(
   "/reject-submission/:id",
   authenticateJWT,
-  authorizeRole("miner"),
+  authorizeRole("miner", "admin"),
   (req, res) => {
-    try {
-      const id = req.params.id;
-      const submissions = JSON.parse(
-        fs.readFileSync("submissions.json", "utf-8")
-      );
-      const submissionIndex = submissions.findIndex((s) => s.id === id);
+    const id = req.params.id;
+    let submissions = JSON.parse(fs.readFileSync("submissions.json", "utf-8"));
+    const index = submissions.findIndex((s) => s.id === id);
 
-      if (submissionIndex === -1) {
-        return res.status(404).json({ message: "Submission not found" });
-      }
-
-      // Remove the submission
-      submissions.splice(submissionIndex, 1);
-      fs.writeFileSync(
-        "submissions.json",
-        JSON.stringify(submissions, null, 2)
-      );
-
-      res.json({ message: "Submission rejected" });
-    } catch (err) {
-      console.error("Reject submission error:", err);
-      res.status(500).json({ message: "Failed to reject submission" });
+    if (index === -1) {
+      return res.status(404).json({ message: "Submission not found" });
     }
+
+    submissions[index].status = "rejected";
+    fs.writeFileSync("submissions.json", JSON.stringify(submissions, null, 2));
+    res.json({ message: "Submission rejected" });
   }
 );
+`-// --- Start Server ---`
 server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
