@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Wallet Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 2rem;
+        background: #f9f9f9;
+      }
+      h1 {
+        color: #2c3e50;
+      }
+      #walletInfo {
+        margin-bottom: 1.5rem;
+        background: #ecf0f1;
+        padding: 1rem;
+        border-radius: 8px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+      }
+      th,
+      td {
+        padding: 0.75rem;
+        border: 1px solid #ccc;
+        text-align: center;
+      }
+      a {
+        display: inline-block;
+        margin-top: 1rem;
+        color: #2980b9;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>💰 Wallet Dashboard</h1>
+    <div id="walletInfo">Loading wallet...</div>
+    <a href="transfer-money.html" class="btn-transfer-link"
+      >💸 Transfer Money</a
+    >
+
+    <h2>📜 Transaction History</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>From</th>
+          <th>To</th>
+          <th>Amount</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody id="transactions">
+        <tr>
+          <td colspan="4">Loading transactions...</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <a href="index.html">⬅ Back to Home</a>
+
+    <script>
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("You must be logged in.");
+        window.location.href = "login.html";
+      }
+
+      async function loadWallet() {
+        try {
+          const res = await fetch("http://localhost:3000/wallet", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.message || "Failed to load wallet");
+          }
+
+          document.getElementById("walletInfo").innerHTML = `
+          <p><strong>NID:</strong> ${data.nid}</p>
+          <p><strong>Balance:</strong> ${data.balance} coins</p>
+        `;
+
+          const tbody = document.getElementById("transactions");
+          tbody.innerHTML = ""; // Clear initial row
+
+          if (data.transactions && data.transactions.length > 0) {
+            data.transactions.forEach((tx) => {
+              const row = document.createElement("tr");
+              row.innerHTML = `
+              <td>${tx.fromNID}</td>
+              <td>${tx.toNID}</td>
+              <td>${tx.amount}</td>
+              <td>${new Date(tx.timestamp).toLocaleString()}</td>
+            `;
+              tbody.appendChild(row);
+            });
+          } else {
+            tbody.innerHTML =
+              "<tr><td colspan='4'>No transactions found.</td></tr>";
+          }
+        } catch (err) {
+          console.error("Wallet load failed:", err);
+          document.getElementById("walletInfo").innerHTML =
+            "<p style='color:red;'>Error loading wallet</p>";
+          document.getElementById("transactions").innerHTML =
+            "<tr><td colspan='4'>Error fetching data</td></tr>";
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", loadWallet);
+    </script>
+  </body>
+</html>

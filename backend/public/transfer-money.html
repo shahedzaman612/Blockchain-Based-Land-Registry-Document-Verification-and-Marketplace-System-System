@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Transfer Money</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h1>💸 Transfer Money</h1>
+
+    <form id="transferForm" class="form">
+      <label
+        >Sender (Your NID):
+        <input type="text" id="fromNID" required />
+      </label>
+      <label
+        >Receiver (Seller NID):
+        <input type="text" id="toNID" required />
+      </label>
+      <label
+        >Amount (BDT):
+        <input type="number" id="amount" required />
+      </label>
+      <button type="submit">Transfer</button>
+    </form>
+
+    <a href="user-dashboard.html">⬅️ Back to Dashboard</a>
+
+    <script>
+      document
+        .getElementById("transferForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+          const token = localStorage.getItem("token");
+
+          const fromNID = document.getElementById("fromNID").value;
+          const toNID = document.getElementById("toNID").value;
+          const amount = parseFloat(document.getElementById("amount").value);
+
+          try {
+            const res = await fetch("http://localhost:3000/transfer-money", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ fromNID, toNID, amount }),
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+              alert(`✅ ${data.message}`);
+            } else {
+              alert(`❌ ${data.message}`);
+            }
+          } catch (err) {
+            alert("❌ Failed to transfer money.");
+            console.error(err);
+          }
+        });
+    </script>
+  </body>
+</html>

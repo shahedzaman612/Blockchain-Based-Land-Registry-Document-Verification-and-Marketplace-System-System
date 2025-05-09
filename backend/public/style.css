@@ -77,7 +77,8 @@ form {
 /* All Inputs Styling */
 .input-wrapper input[type="text"],
 .input-wrapper input[type="password"],
-form input[type="file"] {
+form input[type="file"],
+form input[type="number"] {
   width: 100%;
   padding: 12px;
   padding-right: 55px; /* Reserve space for toggle eye */
@@ -93,7 +94,8 @@ form input[type="file"] {
 /* Input Focus Effect */
 .input-wrapper input[type="text"]:focus,
 .input-wrapper input[type="password"]:focus,
-form input[type="file"]:focus form select:focus {
+form input[type="file"],
+form input[type="number"]:focus form select:focus {
   border-color: var(--secondary-color);
   outline: none;
   box-shadow: 0 0 5px var(--secondary-color);
@@ -127,6 +129,7 @@ form input[type="file"]:focus form select:focus {
 
 /* Submit Button */
 form button {
+  margin-top: 2vh;
   width: 100%;
   padding: 12px;
   background-color: var(--secondary-color);
@@ -444,4 +447,3 @@ h2 {
   background: var(--accent-color);
   color: white;
 }
-

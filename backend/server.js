@@ -282,7 +282,7 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// --- Modified Register Route ---
+//--- Register Route ---
 app.post("/register", async (req, res) => {
   try {
     const { username, nid, password, role } = req.body;
@@ -297,12 +297,15 @@ app.post("/register", async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
     users.push({
       username,
       nid,
       password: hashedPassword,
       role: role || "user",
+      wallet: 10000, // 💰 Initialize wallet balance
     });
+
     writeUsers(users);
     res.status(201).json({ message: "User registered successfully!" });
   } catch (err) {
@@ -446,7 +449,7 @@ app.post("/post-ad", authenticateJWT, upload.single("image"), (req, res) => {
       imagePath: `/uploads/${path.basename(imagePath)}`,
       postedBy: req.user.username,
       sellerNID: req.user.nid,
-      displayName: posterName || req.user.username,  // 👈 Only used for display
+      displayName: posterName || req.user.username, // 👈 Only used for display
     };
 
     const ads = readAds();
@@ -459,7 +462,6 @@ app.post("/post-ad", authenticateJWT, upload.single("image"), (req, res) => {
     res.status(500).json({ message: "Failed to post ad" });
   }
 });
-
 
 // Get Ads Route
 app.get("/ads", authenticateJWT, (req, res) => {
@@ -815,69 +817,64 @@ app.get(
     }
   }
 );
-app.post(
-  "/approve-submission/:id",
-  authenticateJWT,
-  authorizeRole("miner", "admin"),
-
-  (req, res) => {
-    try {
-      const id = req.params.id;
-      const submissions = JSON.parse(
-        fs.readFileSync("submissions.json", "utf-8")
-      );
-      const submissionIndex = submissions.findIndex((s) => s.id === id);
-
-      if (submissionIndex === -1) {
-        return res.status(404).json({ message: "Submission not found" });
-      }
-
-      const submission = submissions[submissionIndex];
-
-      // Mark as approved
-      submissions[submissionIndex].status = "approved";
-      fs.writeFileSync(
-        "submissions.json",
-        JSON.stringify(submissions, null, 2)
-      );
-      const transactionId = crypto
-        .createHash("sha256")
-        .update(Date.now() + Math.random().toString())
-        .digest("hex")
-        .substring(0, 12); // shorten for readability
-      // --- Create a new block ---
-      const chain = JSON.parse(fs.readFileSync("blockchain.json", "utf-8"));
-      const previousBlock = chain[chain.length - 1];
-      const timestamp = new Date().toISOString();
-      const newBlock = {
-        blockNumber: chain.length + 1,
-        timestamp,
-        transactionId: transactionId,
-        from: submission.from,
-        fromNID: submission.fromNID,
-        to: submission.to,
-        toNID: submission.toNID,
-        nonce: submission.nonce,
-        docs: submission.docs,
-        previousHash: previousBlock.hash,
-      };
-
-      const blockString = JSON.stringify(newBlock);
-      newBlock.hash = crypto
-        .createHash("sha256")
-        .update(blockString)
-        .digest("hex");
-
-      chain.push(newBlock);
-      fs.writeFileSync("blockchain.json", JSON.stringify(chain, null, 2));
-
-      res.json({ message: "Block mined successfully", block: newBlock });
-    } catch (err) {
-      console.error("Approve submission error:", err);
-      res.status(500).json({ message: "Failed to approve submission" });
-    }
+app.post("/approve-submission/:id", authenticateJWT, (req, res) => {
+  const submissionId = req.params.submissionId;
+  const user = req.user;
+  if (user.role !== "minar") {
+    return res.status(403).json({ message: "Only Minars can approve blocks" });
   }
-);
+
+  const submissions = readJSON("submissions.json");
+  const submissionIndex = submissions.findIndex((s) => s.id === submissionId);
+  if (submissionIndex === -1) {
+    return res.status(404).json({ message: "Submission not found" });
+  }
+
+  const submission = submissions[submissionIndex];
+
+  const transactions = readJSON("transactions.json");
+  const transactionExists = transactions.some(
+    (t) =>
+      t.fromNID === submission.fromNID &&
+      t.toNID === submission.toNID &&
+      t.amount > 0
+  );
+
+  if (!transactionExists) {
+    return res.status(400).json({
+      message:
+        "Money transfer not found. Buyer must transfer funds before approval.",
+    });
+  }
+
+  const blocks = readBlockchain();
+  const lastBlock = blocks[blocks.length - 1];
+
+  const newBlock = {
+    blockNumber: blocks.length + 1,
+    transactionId: submission.transactionId,
+    from: submission.from,
+    fromNID: submission.fromNID,
+    to: submission.to,
+    toNID: submission.toNID,
+    land: submission.land,
+    timestamp: new Date().toISOString(),
+    previousHash: lastBlock.hash,
+    nonce: submission.nonce,
+    hash: calculateHash(submission), // reuse your hash function
+    documents: submission.documents,
+  };
+
+  blocks.push(newBlock);
+  writeBlockchain(blocks);
+
+  submissions.splice(submissionIndex, 1);
+  writeJSON("submissions.json", submissions);
+
+  res
+    .status(200)
+    .json({ message: "✅ Block approved and added to blockchain." });
+});
 app.post(
   "/reject-submission/:id",
   authenticateJWT,
@@ -896,7 +893,71 @@ app.post(
     res.json({ message: "Submission rejected" });
   }
 );
-`-// --- Start Server ---`
+
+const walletFilePath = path.join(__dirname, "wallets.json");
+
+function readWallets() {
+  if (!fs.existsSync(walletFilePath)) return {};
+  return JSON.parse(fs.readFileSync(walletFilePath, "utf-8"));
+}
+
+function writeWallets(wallets) {
+  fs.writeFileSync(walletFilePath, JSON.stringify(wallets, null, 2));
+}
+
+app.get("/wallet", authenticateJWT, (req, res) => {
+  try {
+    const nid = req.user?.nid;
+    if (!nid) return res.status(400).json({ message: "Invalid token or NID" });
+
+    const users = readUsers();
+    const user = users.find((u) => u.nid === nid);
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Simulate wallet object
+    const wallet = {
+      nid: user.nid,
+      balance: user.wallet || 0,
+      transactions: [] // You can later pull from a separate transactions log
+    };
+
+    res.json(wallet);
+  } catch (err) {
+    console.error("Error in /wallet:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+app.post("/transfer-money", authenticateJWT, (req, res) => {
+  const { fromNID, toNID, amount } = req.body;
+  const users = readUsers();
+
+  const fromUser = users.find((u) => u.nid === fromNID);
+  const toUser = users.find((u) => u.nid === toNID);
+
+  if (!fromUser || !toUser) {
+    return res.status(404).json({ message: "User(s) not found" });
+  }
+
+  if (fromUser.wallet < amount) {
+    return res.status(400).json({ message: "Insufficient balance" });
+  }
+
+  fromUser.wallet -= amount;
+  toUser.wallet += amount;
+
+  writeUsers(users);
+
+  res.json({
+    message: `✅ Transferred ${amount} BDT from ${fromUser.username} to ${toUser.username}`,
+    fromBalance: fromUser.wallet,
+    toBalance: toUser.wallet,
+  });
+});
+
+`-// --- Start Server ---`;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

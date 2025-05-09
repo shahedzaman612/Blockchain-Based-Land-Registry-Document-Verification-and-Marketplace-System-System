@@ -21,9 +21,14 @@
     <div id="particles-js"></div>
 
     <h1>My Owned Lands</h1>
+
+    <!-- Link to Wallet Page -->
+    <a href="wallet.html" class="wallet-link">💰 Go to Wallet</a>
+
     <a href="chat-dashboard.html" class="back-button"
       >💬 Go to Chat Dashboard</a
     >
+
     <div id="notificationBox"></div>
     <div id="chatNotificationContainer" class="block-container"></div>
 
@@ -54,8 +59,7 @@
         notifications.forEach(({ from, message }) => {
           const div = document.createElement("div");
           div.className = "notification";
-          div.innerHTML = `
-            📩 Message from <b>${from}</b>: ${message}
+          div.innerHTML = `📩 Message from <b>${from}</b>: ${message}
             <button onclick="startChat('${from}')">Join Chat</button>
             <button onclick="this.parentElement.remove()">Dismiss</button>
           `;
@@ -68,11 +72,8 @@
         if (!container) return;
 
         const div = document.createElement("div");
-        div.innerHTML = `
-          📩 New chat started by <b>${from}</b><br>
-          <<button onclick="location.href='chat.html?partner=${partnerNID}&role=${role}'"class="open-chat-btn">
-             Open Chat</button>
-
+        div.innerHTML = `📩 New chat started by <b>${from}</b><br>
+          <button onclick="location.href='chat.html?partner=${partnerNID}&role=${role}'" class="open-chat-btn">Open Chat</button>
           <button onclick="this.parentElement.remove()">Dismiss</button>
         `;
         container.appendChild(div);
