@@ -6,6 +6,18 @@
     <link rel="stylesheet" href="style.css" />
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
     <style>
+      .doc-img {
+        max-width: 100%;
+        max-height: 200px;
+        border: 2px solid #ccc;
+        border-radius: 10px;
+        margin: 5px;
+      }
+      .docs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
       button {
         padding: 10px 18px;
         margin: 8px 5px;
@@ -16,31 +28,37 @@
         transition: all 0.3s ease;
         font-weight: bold;
       }
-
       button:hover {
         transform: scale(1.05);
       }
-
       button:active {
         transform: scale(0.98);
       }
-
       button.approve {
         background-color: #4caf50;
         color: white;
       }
-
       button.approve:hover {
         background-color: #45a049;
       }
-
       button.reject {
         background-color: #f44336;
         color: white;
       }
-
       button.reject:hover {
         background-color: #e53935;
+      }
+      .transaction-history {
+        margin-top: 20px;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 20px;
+        border-radius: 10px;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+      .transaction {
+        border-bottom: 1px solid #aaa;
+        padding: 10px 0;
       }
     </style>
   </head>
@@ -49,8 +67,27 @@
     <h1>Miner Dashboard – Pending Land Submissions</h1>
     <div id="submissions"></div>
 
+    <h2>📜 All Land Transfer Transactions</h2>
+
+    <div style="margin-top: 20px">
+      <label for="sortOrder">Sort By:</label>
+      <select id="sortOrder" onchange="loadTransactions()">
+        <option value="desc">Newest First</option>
+        <option value="asc">Oldest First</option>
+      </select>
+
+      <label for="filterUser" style="margin-left: 20px">Filter by NID:</label>
+      <input
+        type="text"
+        id="filterUser"
+        oninput="loadTransactions()"
+        placeholder="Enter NID..."
+      />
+    </div>
+
+    <div id="transactions" class="transaction-history"></div>
+
     <script>
-      // Particle effect
       particlesJS("particles-js", {
         particles: {
           number: { value: 60, density: { enable: true, value_area: 800 } },
@@ -76,13 +113,13 @@
 
       const token = localStorage.getItem("token");
       const submissionsDiv = document.getElementById("submissions");
+      const transactionsDiv = document.getElementById("transactions");
 
       if (!token) {
         alert("Please login as a Minar to view this page.");
         window.location.href = "/login.html";
       }
 
-      // Load pending submissions
       async function loadSubmissions() {
         try {
           const res = await fetch("http://localhost:3000/pending-submissions", {
@@ -107,31 +144,41 @@
           data.forEach((s) => {
             const el = document.createElement("div");
             el.className = "submission";
+
+            const docs = s.docs || s.documents || {};
+
             el.innerHTML = `
               <h3>Submission ID: ${s.id}</h3>
               <p><strong>From:</strong> ${s.from} (${s.fromNID})</p>
               <p><strong>To:</strong> ${s.to} (${s.toNID})</p>
               <p><strong>Nonce:</strong> ${s.nonce}</p>
               <p><strong>Submitted By:</strong> ${s.submittedBy}</p>
-              <div class="docs">
+
               <div class="docs">
                 <div>
                   <p><strong>DCR:</strong></p>
-                  <img src="${s.docs.dcr}" alt="DCR Document" class="doc-img" />
+                  <img src="${docs.dcr || "#"}" alt="DCR" class="doc-img" />
                 </div>
                 <div>
                   <p><strong>Porcha:</strong></p>
-                  <img src="${s.docs.porcha}" alt="Porcha Document" class="doc-img" />
+                  <img src="${
+                    docs.porcha || "#"
+                  }" alt="Porcha" class="doc-img" />
                 </div>
                 <div>
                   <p><strong>Dolil:</strong></p>
-                  <img src="${s.docs.dolil}" alt="Dolil Document" class="doc-img" />
+                  <img src="${docs.dolil || "#"}" alt="Dolil" class="doc-img" />
                 </div>
               </div>
-              <button class="approve" onclick="approveSubmission('${s.id}')">✅ Approve</button>
-              <button class="reject" onclick="rejectSubmission('${s.id}')">❌ Reject</button>
 
+              <button class="approve" onclick="approveSubmission('${
+                s.id
+              }')">✅ Approve</button>
+              <button class="reject" onclick="rejectSubmission('${
+                s.id
+              }')">❌ Reject</button>
             `;
+
             submissionsDiv.appendChild(el);
           });
         } catch (err) {
@@ -139,9 +186,72 @@
         }
       }
 
-      // Approve handler
+      async function loadTransactions() {
+        try {
+          const res = await fetch("http://localhost:3000/all-transfers", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (!res.ok) {
+            transactionsDiv.innerHTML = "<p>Error loading transactions.</p>";
+            return;
+          }
+
+          const data = await res.json();
+
+          const filter = document.getElementById("filterUser").value.trim();
+          const sortOrder = document.getElementById("sortOrder").value;
+
+          let filtered = data;
+          if (filter) {
+            filtered = data.filter(
+              (tx) => tx.fromNID.includes(filter) || tx.toNID.includes(filter)
+            );
+          }
+
+          if (sortOrder === "asc") {
+            filtered.sort(
+              (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+            );
+          } else {
+            filtered.sort(
+              (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+            );
+          }
+
+          transactionsDiv.innerHTML = "";
+
+          if (filtered.length === 0) {
+            transactionsDiv.innerHTML = "<p>No matching transactions.</p>";
+            return;
+          }
+
+          filtered.forEach((tx) => {
+            const txEl = document.createElement("div");
+            txEl.className = "transaction";
+            txEl.innerHTML = `
+              <p><strong>Transfer ID:</strong> ${tx.transferId || tx.id}</p>
+              <p><strong>From:</strong> ${tx.fromUser} (${tx.fromNID})</p>
+              <p><strong>To:</strong> ${tx.toUser} (${tx.toNID})</p>
+              <p><strong>Amount:</strong> ${tx.amount} coins</p>
+              <p><strong>Time:</strong> ${new Date(
+                tx.timestamp
+              ).toLocaleString()}</p>
+              <hr />
+            `;
+            transactionsDiv.appendChild(txEl);
+          });
+        } catch (err) {
+          console.error("Failed to load transactions:", err);
+        }
+      }
+
       async function approveSubmission(id) {
-        if (!confirm("Are you sure you want to approve and mine this block?"))
+        if (
+          !confirm(
+            "Are you sure you want to approve, transfer coins, and mine this block?"
+          )
+        )
           return;
 
         try {
@@ -155,8 +265,11 @@
 
           const data = await res.json();
           if (res.ok) {
-            alert("✅ Block mined successfully!");
+            alert(
+              `✅ Block mined successfully!\n💰 Coins transferred.\n🧾 Transfer ID: ${data.includedTransfer.transferId}`
+            );
             loadSubmissions();
+            loadTransactions();
           } else {
             alert("❌ " + data.message);
           }
@@ -165,7 +278,6 @@
         }
       }
 
-      // Reject handler
       async function rejectSubmission(id) {
         if (!confirm("Are you sure you want to reject this submission?"))
           return;
@@ -192,6 +304,7 @@
       }
 
       loadSubmissions();
+      loadTransactions();
     </script>
 
     <a href="index.html" class="back-button">⬅️ Back to Home</a>

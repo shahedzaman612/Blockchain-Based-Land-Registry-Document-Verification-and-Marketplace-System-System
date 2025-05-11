@@ -745,9 +745,9 @@ app.post(
         return res.status(400).json({ message: "All documents are required." });
       }
 
-      // Log the request data for debugging
-      console.log("REQ BODY:", req.body);
-      console.log("REQ FILES:", req.files);
+      // // Log the request data for debugging
+      // console.log("REQ BODY:", req.body);
+      // console.log("REQ FILES:", req.files);
 
       // Generate the land submission object
       const submission = {
@@ -803,44 +803,64 @@ app.post(
 app.get(
   "/pending-submissions",
   authenticateJWT,
-  authorizeRole("miner", "admin"),
+  authorizeRole("miner"),
   (req, res) => {
     try {
-      const data = fs.readFileSync("submissions.json", "utf-8");
-      const submissions = JSON.parse(data).filter(
-        (s) => s.status === "pending"
-      );
-      res.json(submissions);
+      const submissions = JSON.parse(
+        fs.readFileSync("submissions.json", "utf-8")
+      ).filter((s) => s.status === "pending");
+
+      const transfers = JSON.parse(fs.readFileSync("transfers.json", "utf-8"));
+
+      const enhanced = submissions.map((s) => {
+        const lastTx = transfers
+          .filter((tx) => tx.toNID === s.fromNID)
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+
+        return {
+          ...s,
+          lastTransaction: lastTx || null,
+        };
+      });
+
+      res.json(enhanced);
     } catch (err) {
-      console.error("Error reading submissions:", err);
+      console.error("Error in /pending-submissions:", err);
       res.status(500).json({ message: "Failed to load submissions" });
     }
   }
 );
+
 app.post("/approve-submission/:id", authenticateJWT, (req, res) => {
-  const submissionId = req.params.submissionId;
+  const submissionId = req.params.id; // fixed parameter name (was incorrectly using :submissionId)
   const user = req.user;
-  if (user.role !== "minar") {
+
+  if (user.role !== "miner") {
     return res.status(403).json({ message: "Only Minars can approve blocks" });
   }
 
   const submissions = readJSON("submissions.json");
   const submissionIndex = submissions.findIndex((s) => s.id === submissionId);
+
   if (submissionIndex === -1) {
     return res.status(404).json({ message: "Submission not found" });
   }
 
   const submission = submissions[submissionIndex];
 
-  const transactions = readJSON("transactions.json");
-  const transactionExists = transactions.some(
-    (t) =>
-      t.fromNID === submission.fromNID &&
-      t.toNID === submission.toNID &&
-      t.amount > 0
-  );
+  // Load transfer history
+  const transfers = readJSON("transfers.json");
 
-  if (!transactionExists) {
+  // Find the last transaction from buyer to seller
+  const relevantTransfers = transfers
+    .filter(
+      (t) => t.fromNID === submission.fromNID && t.toNID === submission.toNID
+    )
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // latest first
+
+  const lastTransfer = relevantTransfers[0];
+
+  if (!lastTransfer || lastTransfer.amount <= 0) {
     return res.status(400).json({
       message:
         "Money transfer not found. Buyer must transfer funds before approval.",
@@ -861,7 +881,7 @@ app.post("/approve-submission/:id", authenticateJWT, (req, res) => {
     timestamp: new Date().toISOString(),
     previousHash: lastBlock.hash,
     nonce: submission.nonce,
-    hash: calculateHash(submission), // reuse your hash function
+    hash: calculateHash(submission),
     documents: submission.documents,
   };
 
@@ -871,10 +891,12 @@ app.post("/approve-submission/:id", authenticateJWT, (req, res) => {
   submissions.splice(submissionIndex, 1);
   writeJSON("submissions.json", submissions);
 
-  res
-    .status(200)
-    .json({ message: "✅ Block approved and added to blockchain." });
+  res.status(200).json({
+    message: "✅ Block approved and added to blockchain.",
+    includedTransfer: lastTransfer,
+  });
 });
+
 app.post(
   "/reject-submission/:id",
   authenticateJWT,
@@ -919,7 +941,7 @@ app.get("/wallet", authenticateJWT, (req, res) => {
     const wallet = {
       nid: user.nid,
       balance: user.wallet || 0,
-      transactions: [] // You can later pull from a separate transactions log
+      transactions: [], // You can later pull from a separate transactions log
     };
 
     res.json(wallet);
@@ -929,7 +951,18 @@ app.get("/wallet", authenticateJWT, (req, res) => {
   }
 });
 
+const transfersPath = path.join(__dirname, "transfers.json");
 
+function readTransfers() {
+  if (!fs.existsSync(transfersPath)) return [];
+  return JSON.parse(fs.readFileSync(transfersPath));
+}
+
+function writeTransfers(data) {
+  fs.writeFileSync(transfersPath, JSON.stringify(data, null, 2));
+}
+
+// Transfer route with logging
 app.post("/transfer-money", authenticateJWT, (req, res) => {
   const { fromNID, toNID, amount } = req.body;
   const users = readUsers();
@@ -950,11 +983,30 @@ app.post("/transfer-money", authenticateJWT, (req, res) => {
 
   writeUsers(users);
 
+  // Log the transfer
+  const transfers = readTransfers();
+  const newTransfer = {
+    id: Date.now(),
+    fromNID,
+    fromUser: fromUser.username,
+    toNID,
+    toUser: toUser.username,
+    amount,
+    timestamp: new Date().toISOString(),
+  };
+  transfers.push(newTransfer);
+  writeTransfers(transfers);
+
   res.json({
     message: `✅ Transferred ${amount} BDT from ${fromUser.username} to ${toUser.username}`,
     fromBalance: fromUser.wallet,
     toBalance: toUser.wallet,
+    transfer: newTransfer,
   });
+});
+app.get("/all-transfers", authenticateJWT, (req, res) => {
+  const transfers = JSON.parse(fs.readFileSync("transfers.json"));
+  res.json(transfers);
 });
 
 `-// --- Start Server ---`;
