@@ -285,10 +285,14 @@ app.get("/", (req, res) => {
 //--- Register Route ---
 app.post("/register", async (req, res) => {
   try {
-    const { username, nid, password, role } = req.body;
+    const { username, nid, password, role, zone } = req.body;
 
+    // Basic validation
     if (!nid || nid.length < 5) {
       return res.status(400).json({ message: "Invalid NID number" });
+    }
+    if (!zone) {
+      return res.status(400).json({ message: "Zone is required" });
     }
 
     const users = readUsers();
@@ -302,8 +306,9 @@ app.post("/register", async (req, res) => {
       username,
       nid,
       password: hashedPassword,
-      role: role || "user",
-      wallet: 10000, // 💰 Initialize wallet balance
+      role: role || "user", // user or minar
+      zone,
+      wallet: 10000, // 💰 Starting wallet balance
     });
 
     writeUsers(users);
@@ -354,11 +359,11 @@ const crypto = require("crypto");
 app.post(
   "/create-block",
   authenticateJWT,
-  authorizeRole("admin"),
+  authorizeRole("minar"),
   upload.fields([{ name: "dcr" }, { name: "porcha" }, { name: "dolil" }]),
   (req, res) => {
     try {
-      const { fromAddress, toAddress, fromNID, toNID, nonce } = req.body;
+      const { fromAddress, toAddress, fromNID, toNID, nonce, zone } = req.body;
 
       if (
         !req.files?.dcr?.[0] ||
@@ -366,6 +371,14 @@ app.post(
         !req.files?.dolil?.[0]
       ) {
         return res.status(400).json({ message: "All documents are required." });
+      }
+
+      // Check if the logged-in Minar is elected for the zone
+      const zoneMinars = JSON.parse(fs.readFileSync("zoneMinars.json"));
+      if (zoneMinars[zone] !== req.user.nid) {
+        return res
+          .status(403)
+          .json({ message: "You are not the elected Minar for this zone." });
       }
 
       // Auto-generate a unique transaction ID
@@ -382,6 +395,7 @@ app.post(
         to: toAddress,
         toNID,
         nonce,
+        zone,
         docs: {
           dcr: req.files["dcr"][0].path,
           porcha: req.files["porcha"][0].path,
@@ -730,13 +744,17 @@ app.post(
   upload.fields([{ name: "dcr" }, { name: "porcha" }, { name: "dolil" }]), // Handle file uploads
   (req, res) => {
     try {
-      // Ensure required fields are present
-      const { fromAddress, toAddress, fromNID, toNID, nonce } = req.body;
-      if (!fromAddress || !toAddress || !fromNID || !toNID || !nonce) {
-        return res.status(400).json({ message: "All fields are required." });
+      // Extract data
+      const { fromAddress, toAddress, fromNID, toNID, nonce, zone } = req.body;
+
+      // Validate required fields
+      if (!fromAddress || !toAddress || !fromNID || !toNID || !nonce || !zone) {
+        return res
+          .status(400)
+          .json({ message: "All fields including zone are required." });
       }
 
-      // Ensure all documents are uploaded
+      // Validate required documents
       if (
         !req.files?.dcr?.[0] ||
         !req.files?.porcha?.[0] ||
@@ -745,11 +763,7 @@ app.post(
         return res.status(400).json({ message: "All documents are required." });
       }
 
-      // // Log the request data for debugging
-      // console.log("REQ BODY:", req.body);
-      // console.log("REQ FILES:", req.files);
-
-      // Generate the land submission object
+      // Create the submission object
       const submission = {
         id: crypto.randomUUID(),
         from: fromAddress,
@@ -757,17 +771,18 @@ app.post(
         to: toAddress,
         toNID,
         nonce,
+        zone,
         docs: {
           dcr: req.files["dcr"][0].path,
           porcha: req.files["porcha"][0].path,
           dolil: req.files["dolil"][0].path,
         },
-        status: "pending", // Initially pending for approval by the miner
-        submittedBy: req.user.username, // Submitted by the logged-in user
+        status: "pending",
+        submittedBy: req.user.username,
         submittedAt: new Date().toISOString(),
       };
 
-      // Read existing submissions from the file
+      // Load existing submissions
       let submissions = [];
       try {
         const data = fs.readFileSync("submissions.json", "utf-8");
@@ -776,21 +791,20 @@ app.post(
         console.warn("Error reading submissions.json, creating a new one.");
       }
 
-      // Push the new submission
+      // Add new submission
       submissions.push(submission);
 
-      // Ensure the uploads folder exists
+      // Ensure uploads folder exists
       if (!fs.existsSync("uploads")) {
         fs.mkdirSync("uploads");
       }
 
-      // Write the updated submissions to the file
+      // Save updated submissions
       fs.writeFileSync(
         "submissions.json",
         JSON.stringify(submissions, null, 2)
       );
 
-      // Send a successful response
       res.json({ message: "Submission successful", submission });
     } catch (err) {
       console.error("Land submission error:", err.stack || err);
@@ -808,22 +822,43 @@ app.get(
     try {
       const submissions = JSON.parse(
         fs.readFileSync("submissions.json", "utf-8")
-      ).filter((s) => s.status === "pending");
+      );
 
       const transfers = JSON.parse(fs.readFileSync("transfers.json", "utf-8"));
 
-      const enhanced = submissions.map((s) => {
-        const lastTx = transfers
-          .filter((tx) => tx.toNID === s.fromNID)
-          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+      const users = JSON.parse(fs.readFileSync("users.json", "utf-8"));
+      const zoneMinars = JSON.parse(
+        fs.readFileSync("zoneMinars.json", "utf-8")
+      );
 
-        return {
-          ...s,
-          lastTransaction: lastTx || null,
-        };
-      });
+      const currentUser = users.find((u) => u.nid === req.user.nid);
+      if (!currentUser) {
+        return res.status(403).json({ message: "User not found" });
+      }
 
-      res.json(enhanced);
+      const userZone = currentUser.zone;
+      const electedMinarNID = zoneMinars[userZone];
+
+      if (electedMinarNID !== currentUser.nid) {
+        return res.status(403).json({
+          message: "⛔ You are not the elected Minar for your zone.",
+        });
+      }
+
+      const zoneSubmissions = submissions
+        .filter((s) => s.status === "pending" && s.zone === userZone)
+        .map((s) => {
+          const lastTx = transfers
+            .filter((tx) => tx.toNID === s.fromNID)
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+
+          return {
+            ...s,
+            lastTransaction: lastTx || null,
+          };
+        });
+
+      res.json(zoneSubmissions);
     } catch (err) {
       console.error("Error in /pending-submissions:", err);
       res.status(500).json({ message: "Failed to load submissions" });
@@ -832,7 +867,7 @@ app.get(
 );
 
 app.post("/approve-submission/:id", authenticateJWT, (req, res) => {
-  const submissionId = req.params.id; // fixed parameter name (was incorrectly using :submissionId)
+  const submissionId = req.params.id;
   const user = req.user;
 
   if (user.role !== "miner") {
@@ -848,18 +883,25 @@ app.post("/approve-submission/:id", authenticateJWT, (req, res) => {
 
   const submission = submissions[submissionIndex];
 
-  // Load transfer history
-  const transfers = readJSON("transfers.json");
+  const users = readJSON("users.json");
+  const currentUser = users.find((u) => u.nid === user.nid);
+  const zoneMinars = readJSON("zoneMinars.json");
 
-  // Find the last transaction from buyer to seller
+  const electedMinarNID = zoneMinars[submission.zone];
+  if (electedMinarNID !== currentUser.nid) {
+    return res.status(403).json({
+      message: "⛔ You are not the elected Minar for this zone.",
+    });
+  }
+
+  const transfers = readJSON("transfers.json");
   const relevantTransfers = transfers
     .filter(
       (t) => t.fromNID === submission.fromNID && t.toNID === submission.toNID
     )
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // latest first
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
   const lastTransfer = relevantTransfers[0];
-
   if (!lastTransfer || lastTransfer.amount <= 0) {
     return res.status(400).json({
       message:
@@ -878,6 +920,7 @@ app.post("/approve-submission/:id", authenticateJWT, (req, res) => {
     to: submission.to,
     toNID: submission.toNID,
     land: submission.land,
+    zone: submission.zone,
     timestamp: new Date().toISOString(),
     previousHash: lastBlock.hash,
     nonce: submission.nonce,
@@ -1053,6 +1096,181 @@ app.get("/receipt/:id", authenticateJWT, (req, res) => {
   );
   res.send(receipt);
 });
+const { castVote, tallyVotes, readVotes } = require("./minarVotes");
+// Get current votes (optional debug or admin tool)
+app.get("/votes", authenticateJWT, authorizeRole("admin"), (req, res) => {
+  res.json(readVotes());
+});
+app.get("/user", authenticateJWT, authorizeRole("user"), (req, res) => {
+  const users = readUsers();
+  const currentUser = users.find((u) => u.nid === req.user.nid);
+
+  if (!currentUser || currentUser.role !== "user") {
+    return res.status(403).json({ message: "Only users can vote" });
+  }
+
+  const zone = currentUser.zone;
+  const minars = users.filter((u) => u.role === "miner" && u.zone === zone);
+
+  res.json(minars);
+});
+
+// Utility function to check if voting is still open
+function isVotingOpen() {
+  const votingPeriod = JSON.parse(
+    fs.readFileSync("votingPeriod.json", "utf-8")
+  );
+  const now = new Date();
+  return (
+    now >= new Date(votingPeriod.startDate) &&
+    now <= new Date(votingPeriod.endDate)
+  );
+}
+
+// User votes for Minar
+app.post("/vote-minar", authenticateJWT, (req, res) => {
+  const { votedMinarNID } = req.body;
+
+  let period;
+  try {
+    period = JSON.parse(fs.readFileSync("votingPeriod.json", "utf-8"));
+  } catch (err) {
+    return res.status(500).json({ message: "Voting period not set" });
+  }
+
+  const now = new Date();
+  const start = new Date(period.start);
+  const end = new Date(period.end);
+
+  if (now < start || now > end) {
+    return res.status(403).json({ message: "⛔ Voting is currently closed." });
+  }
+
+  const result = castVote(req.user.nid, votedMinarNID);
+  if (!result.success) return res.status(400).json({ message: result.message });
+
+  res.json({ message: result.message });
+});
+
+function hasVotingEnded() {
+  const votingPeriod = JSON.parse(
+    fs.readFileSync("votingPeriod.json", "utf-8")
+  );
+  const now = new Date();
+  return now > new Date(votingPeriod.endDate);
+}
+
+// Admin triggers tally
+app.get("/tally-votes", authenticateJWT, authorizeRole("admin"), (req, res) => {
+  if (!hasVotingEnded()) {
+    return res.status(400).json({ message: "Voting period is still ongoing" });
+  }
+
+  const results = tallyVotes();
+  res.json({ electedMinars: results });
+});
+
+function writeZoneMinars(data) {
+  fs.writeFileSync("zoneMinars.json", JSON.stringify(data, null, 2));
+}
+function tallyVotesAutomatically() {
+  const results = tallyVotes();
+  writeZoneMinars(results);
+  console.log(
+    "✅ [AUTO-TALLY] Votes tallied automatically at:",
+    new Date().toISOString()
+  );
+  console.log("🗳️ Elected Minars:", results);
+}
+
+function scheduleAutomaticTally() {
+  const votingPeriod = JSON.parse(
+    fs.readFileSync("votingPeriod.json", "utf-8")
+  );
+  const now = new Date();
+  const endDate = new Date(votingPeriod.endDate || votingPeriod.end);
+
+  const delay = endDate - now;
+
+  if (delay > 0) {
+    console.log(
+      `⏳ Scheduling auto-tally in ${Math.round(delay / 1000)} seconds`
+    );
+    setTimeout(() => {
+      tallyVotesAutomatically();
+    }, delay);
+  } else {
+    console.log(
+      "⚠️ Voting period already ended or invalid. Not scheduling auto-tally."
+    );
+  }
+}
+
+app.post(
+  "/tally-votes",
+  authenticateJWT,
+  authorizeRole("admin"),
+  (req, res) => {
+    try {
+      const users = readUsers();
+      const votes = readVotes();
+
+      const zones = {};
+      for (const vote of votes) {
+        const voter = users.find((u) => u.nid === vote.voterNID);
+        const minar = users.find((u) => u.nid === vote.minarNID);
+        if (!voter || !minar || voter.zone !== minar.zone) continue;
+
+        const weight = voter.wallet || 0;
+        if (!zones[minar.zone]) zones[minar.zone] = {};
+        if (!zones[minar.zone][minar.nid]) zones[minar.zone][minar.nid] = 0;
+
+        zones[minar.zone][minar.nid] += weight;
+      }
+
+      const result = {};
+      for (const zone in zones) {
+        const scores = zones[zone];
+        const winner = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
+        result[zone] = winner ? winner[0] : null;
+      }
+
+      writeZoneMinars(result);
+      res.json({ message: "Votes tallied", electedMinars: result });
+    } catch (err) {
+      console.error("Tally error:", err);
+      res.status(500).json({ message: "Failed to tally votes" });
+    }
+  }
+);
+app.post(
+  "/set-voting-period",
+  authenticateJWT,
+  authorizeRole("admin"),
+  (req, res) => {
+    const { start, end } = req.body;
+
+    if (!start || !end) {
+      return res
+        .status(400)
+        .json({ message: "Start and end times are required." });
+    }
+
+    try {
+      fs.writeFileSync(
+        "votingPeriod.json",
+        JSON.stringify({ start, end }, null, 2)
+      );
+
+      scheduleAutomaticTally(); // ✅ Reschedule on update
+
+      res.json({ message: "✅ Voting period set successfully.", start, end });
+    } catch (err) {
+      console.error("Failed to set voting period:", err);
+      res.status(500).json({ message: "Error saving voting period." });
+    }
+  }
+);
 
 `-// --- Start Server ---`;
 server.listen(PORT, () => {

@@ -70,6 +70,7 @@
     "to": "Shakila Jahan Shima",
     "toNID": "987654321",
     "nonce": "25",
+    "zone": "Zone B",
     "docs": {
       "dcr": "uploads\\917c21a43849d306bbb1c91c3609284e",
       "porcha": "uploads\\669ebc6d78454778e3ee41872adc5295",
@@ -86,7 +87,7 @@
     "to": "Yunose",
     "toNID": "456789123",
     "nonce": "45",
-    "amount": 100,
+    "zone": "Zone A",
     "docs": {
       "dcr": "uploads\\9b3b4e2bfc7e8d91476d693df1430d39",
       "porcha": "uploads\\10023c752b502c5b20bf4cf3e844a181",

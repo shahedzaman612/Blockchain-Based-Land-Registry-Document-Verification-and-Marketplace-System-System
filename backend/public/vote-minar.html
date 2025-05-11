@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vote for Minar</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 2rem;
+        background: #eef;
+      }
+      h1 {
+        color: #333;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      li {
+        margin-bottom: 10px;
+        background: #fff;
+        padding: 10px;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      button {
+        padding: 5px 10px;
+        margin-left: 10px;
+      }
+      #msg {
+        margin-top: 20px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🗳️ Vote for Your Zone’s Minar</h1>
+    <ul id="minarList">
+      Loading...
+    </ul>
+    <p id="msg"></p>
+
+    <script>
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        alert("❌ You must be logged in to vote.");
+        window.location.href = "login.html";
+      }
+
+      const fetchUsers = async () => {
+        try {
+          const res = await fetch("http://localhost:3000/user", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Failed to fetch users: ${errorText}`);
+          }
+
+          const users = await res.json();
+          displayUsers(users);
+        } catch (err) {
+          console.error("Error fetching users:", err);
+          alert("❌ Failed to load Minars for voting. Are you logged in?");
+        }
+      };
+
+      function displayUsers(users) {
+        const ul = document.getElementById("minarList");
+        ul.innerHTML = "";
+
+        if (users.length === 0) {
+          ul.innerHTML = "<li>No Minars available in your zone.</li>";
+          return;
+        }
+
+        users.forEach((minar) => {
+          const li = document.createElement("li");
+          li.innerHTML = `
+            ${minar.username} (NID: ${minar.nid})
+            <button onclick="vote('${minar.nid}')">✅ Vote</button>
+          `;
+          ul.appendChild(li);
+        });
+      }
+
+      async function vote(nid) {
+        try {
+          const res = await fetch("http://localhost:3000/vote-minar", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ votedMinarNID: nid }),
+          });
+
+          const data = await res.json();
+          document.getElementById("msg").innerText =
+            data.message || "Vote submitted.";
+        } catch (err) {
+          document.getElementById("msg").innerText =
+            "❌ Failed to submit vote.";
+        }
+      }
+
+      fetchUsers();
+    </script>
+  </body>
+</html>

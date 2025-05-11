@@ -1,0 +1,16 @@
+[
+  {
+    "voterNID": "456789123",
+    "votedMinarNID": "987654321",
+    "zone": "Zone A",
+    "weight": 9850,
+    "timestamp": "2025-05-11T23:11:17.076Z"
+  },
+  {
+    "voterNID": "654987321",
+    "votedMinarNID": "987654321",
+    "zone": "Zone A",
+    "weight": 10000,
+    "timestamp": "2025-05-11T23:12:06.276Z"
+  }
+]

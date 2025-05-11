@@ -24,7 +24,20 @@
         <div id="strengthText" style="margin-top: 5px; font-size: 14px"></div>
       </div>
 
-      </div>
+      <label>Zone:</label>
+      <select name="zone" required>
+        <option value="">Select Zone</option>
+        <option value="Zone A">Zone A</option>
+        <option value="Zone B">Zone B</option>
+        <option value="Zone C">Zone C</option>
+      </select>
+
+      <label>Role:</label>
+      <select name="role" required>
+        <option value="user">User</option>
+        <option value="miner">Minar</option>
+      </select>
+
       <button type="submit">Register</button>
       <p>Already have an account? <a href="login.html">Login</a></p>
     </form>
@@ -32,11 +45,10 @@
     <div id="popup" class="popup"></div>
 
     <script>
-            const form = document.getElementById("registerForm");
+      const form = document.getElementById("registerForm");
       const passwordField = document.getElementById("passwordField");
       const togglePassword = document.getElementById("togglePassword");
 
-      // Show/hide password
       togglePassword.addEventListener("click", () => {
         const type =
           passwordField.getAttribute("type") === "password"
@@ -46,7 +58,6 @@
         togglePassword.textContent = type === "password" ? "👁️" : "🙈";
       });
 
-      // Password strength meter
       passwordField.addEventListener("input", () => {
         const strengthText = document.getElementById("strengthText");
         const password = passwordField.value;
@@ -72,13 +83,11 @@
         if (/[A-Z]/.test(password)) strength++;
         if (/[0-9]/.test(password)) strength++;
         if (/[^A-Za-z0-9]/.test(password)) strength++;
-
         if (strength <= 1) return "Weak";
         if (strength === 2) return "Medium";
         if (strength >= 3) return "Strong";
       }
 
-      // Show styled alert
       function showPopup(message, isError = false) {
         const popup = document.getElementById("popup");
         popup.textContent = message;
@@ -89,7 +98,6 @@
         }, 3000);
       }
 
-      // Submit form
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const password = passwordField.value;
@@ -107,6 +115,8 @@
           username: form.username.value,
           password: form.password.value,
           nid: form.nid.value,
+          zone: form.zone.value,
+          role: form.role.value,
         };
 
         try {

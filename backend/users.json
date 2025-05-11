@@ -4,27 +4,47 @@
     "nid": "123456789",
     "password": "$2b$10$aUIhwe0Y9pgjcp7jnVCCPevAI475CA4twWEHVK2oRAXy5OL2b6pvC",
     "role": "admin",
-    "wallet": 10500
+    "wallet": 10500,
+    "zone": "Zone A"
   },
   {
     "username": "Rafi",
     "nid": "789456123",
     "password": "$2b$10$7mH5o/sZhfaD3gQyrKKsyuZ9IQhP77zeFKxfnBEd6o/zkKgcoYX.e",
     "role": "miner",
-    "wallet": 10000
+    "wallet": 10000,
+    "zone": "Zone A"
   },
   {
     "username": "yunose",
     "nid": "456789123",
     "password": "$2b$10$kWFo793rf7mXt0D3Dn9/cuK0g/pL4WQ5dyB5WQQbXlc2fQ5PW/G/m",
     "role": "user",
-    "wallet": 9850
+    "wallet": 9850,
+    "zone": "Zone A"
   },
   {
     "username": "Shakila Jahan Shima",
     "nid": "987654321",
     "password": "$2b$10$YqxOPbSttI6sRmWURwkbMO0LYkC.MfaCsBOBrqThFNvEwpFkLKX2G",
+    "role": "miner",
+    "wallet": 9650,
+    "zone": "Zone A"
+  },
+  {
+    "username": "rima",
+    "nid": "654987321",
+    "password": "$2b$10$LHLbfm1NDhK0dkhuGkG6G.Ta2PF1Mr6FqR2Xt5q367GrU1ryjDHt2",
     "role": "user",
-    "wallet": 9650
+    "zone": "Zone A",
+    "wallet": 10000
+  },
+  {
+    "username": "mohon",
+    "nid": "32165987",
+    "password": "$2b$10$PcUHwnSiQR1DwJ/0uj3SluwdduvwAmFbM/Erou4kYaPbA5yp2pyMe",
+    "role": "user",
+    "zone": "Zone A",
+    "wallet": 10000
   }
 ]

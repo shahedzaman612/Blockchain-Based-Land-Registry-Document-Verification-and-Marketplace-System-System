@@ -34,6 +34,9 @@
       <a href="miner-dashboard.html" id="minarDashboardButton"
         >⚒️ Minar Dashboard</a
       >
+      <a href="set-voting-period.html" id="setVotingPeriodButton">
+        Set Voting Period</a
+      >
     </div>
 
     <!-- Admin Dashboard (Hidden for normal users) -->
@@ -113,12 +116,16 @@
           document.getElementById("adminDashboard").style.display = "none";
           document.getElementById("minarDashboardButton").style.display =
             "none";
+          document.getElementById("setVotingPeriodButton").style.display =
+            "none";
         }
 
         if (userData.role === "miner") {
           document.getElementById("postAdButton").style.display = "none";
           document.getElementById("userDashboardButton").style.display = "none";
-          document.getElementById("postAdButton").style.display = "none";
+          document.getElementById("submitLandButton").style.display = "none";
+          document.getElementById("setVotingPeriodButton").style.display =
+            "none";
         }
 
         if (userData.role === "admin") {

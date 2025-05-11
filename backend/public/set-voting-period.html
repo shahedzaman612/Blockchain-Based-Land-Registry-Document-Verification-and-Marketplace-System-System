@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Set Voting Period</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h2>🗳️ Set Voting Period</h2>
+      <label>Start Time (UTC)</label>
+      <input type="datetime-local" id="startTime" />
+      <label>End Time (UTC)</label>
+      <input type="datetime-local" id="endTime" />
+      <button onclick="setVotingPeriod()">Set Period</button>
+      <p id="status"></p>
+    </div>
+
+    <script>
+      async function setVotingPeriod() {
+        const start = document.getElementById("startTime").value;
+        const end = document.getElementById("endTime").value;
+
+        const token = localStorage.getItem("token");
+        if (!start || !end) {
+          return alert("Please provide both start and end times.");
+        }
+
+        const res = await fetch("/set-voting-period", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
+          body: JSON.stringify({ start, end }),
+        });
+
+        const data = await res.json();
+        document.getElementById("status").innerText = data.message;
+      }
+    </script>
+  </body>
+</html>
