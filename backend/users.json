@@ -4,7 +4,7 @@
     "nid": "123456789",
     "password": "$2b$10$aUIhwe0Y9pgjcp7jnVCCPevAI475CA4twWEHVK2oRAXy5OL2b6pvC",
     "role": "admin",
-    "wallet": 10250
+    "wallet": 10500
   },
   {
     "username": "Rafi",
@@ -18,7 +18,7 @@
     "nid": "456789123",
     "password": "$2b$10$kWFo793rf7mXt0D3Dn9/cuK0g/pL4WQ5dyB5WQQbXlc2fQ5PW/G/m",
     "role": "user",
-    "wallet": 10100
+    "wallet": 9850
   },
   {
     "username": "Shakila Jahan Shima",

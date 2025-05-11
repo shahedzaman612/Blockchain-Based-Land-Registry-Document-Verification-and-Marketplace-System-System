@@ -916,7 +916,7 @@ app.post(
   }
 );
 
-const walletFilePath = path.join(__dirname, "wallets.json");
+const walletFilePath = path.join(__dirname, "transfers.json");
 
 function readWallets() {
   if (!fs.existsSync(walletFilePath)) return {};
@@ -928,27 +928,23 @@ function writeWallets(wallets) {
 }
 
 app.get("/wallet", authenticateJWT, (req, res) => {
-  try {
-    const nid = req.user?.nid;
-    if (!nid) return res.status(400).json({ message: "Invalid token or NID" });
+  const users = readUsers();
+  const transfers = readTransfers();
+  const user = users.find((u) => u.nid === req.user.nid);
 
-    const users = readUsers();
-    const user = users.find((u) => u.nid === nid);
-
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    // Simulate wallet object
-    const wallet = {
-      nid: user.nid,
-      balance: user.wallet || 0,
-      transactions: [], // You can later pull from a separate transactions log
-    };
-
-    res.json(wallet);
-  } catch (err) {
-    console.error("Error in /wallet:", err);
-    res.status(500).json({ message: "Server error" });
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
   }
+
+  const transactions = transfers.filter(
+    (t) => t.fromNID === user.nid || t.toNID === user.nid
+  );
+
+  res.json({
+    nid: user.nid,
+    balance: user.wallet,
+    transactions,
+  });
 });
 
 const transfersPath = path.join(__dirname, "transfers.json");
@@ -997,16 +993,65 @@ app.post("/transfer-money", authenticateJWT, (req, res) => {
   transfers.push(newTransfer);
   writeTransfers(transfers);
 
+  // Prepare receipt
+  const receipt = {
+    transactionId: `TX-${newTransfer.id}`,
+    from: {
+      nid: fromUser.nid,
+      name: fromUser.username,
+    },
+    to: {
+      nid: toUser.nid,
+      name: toUser.username,
+    },
+    amount,
+    timestamp: newTransfer.timestamp,
+  };
+
   res.json({
     message: `✅ Transferred ${amount} BDT from ${fromUser.username} to ${toUser.username}`,
     fromBalance: fromUser.wallet,
     toBalance: toUser.wallet,
     transfer: newTransfer,
+    receipt, // ✅ Send the receipt
   });
 });
+
 app.get("/all-transfers", authenticateJWT, (req, res) => {
   const transfers = JSON.parse(fs.readFileSync("transfers.json"));
   res.json(transfers);
+});
+app.get("/receipt/:id", authenticateJWT, (req, res) => {
+  const transfers = readTransfers();
+  const transfer = transfers.find((t) => t.id == req.params.id);
+
+  if (!transfer) {
+    return res.status(404).send("Receipt not found");
+  }
+
+  // Check if user is part of this transaction
+  if (transfer.fromNID !== req.user.nid && transfer.toNID !== req.user.nid) {
+    return res.status(403).send("Unauthorized");
+  }
+
+  const receipt = `
+    Transaction Receipt
+    -------------------------
+    ID: ${transfer.id}
+    From: ${transfer.fromUser} (NID: ${transfer.fromNID})
+    To: ${transfer.toUser} (NID: ${transfer.toNID})
+    Amount: ${transfer.amount} BDT
+    Timestamp: ${new Date(transfer.timestamp).toLocaleString()}
+    -------------------------
+    Thank you for using our wallet system.
+  `;
+
+  res.setHeader("Content-Type", "text/plain");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename=receipt-${transfer.id}.txt`
+  );
+  res.send(receipt);
 });
 
 `-// --- Start Server ---`;

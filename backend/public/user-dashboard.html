@@ -242,6 +242,80 @@
         }
       }
 
+      async function fetchSubmissions() {
+        const token = localStorage.getItem("token");
+
+        try {
+          const res = await fetch("http://localhost:3000/pending-submissions", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (!res.ok) {
+            const errMsg = await res.json();
+            throw new Error(errMsg.message || "Failed to load submissions");
+          }
+
+          const submissions = await res.json();
+          const list = document.getElementById("submissionList");
+          document.getElementById("loadingSubmissions").style.display = "none";
+
+          if (!submissions.length) {
+            list.innerHTML = "<p>No pending submissions.</p>";
+            return;
+          }
+
+          submissions.forEach((sub) => {
+            const div = document.createElement("div");
+            div.className = "block-card";
+
+            div.innerHTML = `
+          <p><strong>ID:</strong> ${sub.id}</p>
+          <p><strong>From:</strong> ${sub.from} (${sub.fromNID})</p>
+          <p><strong>To:</strong> ${sub.to} (${sub.toNID})</p>
+          <p><strong>Transaction ID:</strong> ${sub.transactionId}</p>
+          <button class="approve-btn">✅ Approve</button>
+        `;
+
+            div.querySelector(".approve-btn").onclick = async () => {
+              const confirmApprove = confirm("Approve this submission?");
+              if (!confirmApprove) return;
+
+              try {
+                const res = await fetch(
+                  `http://localhost:3000/approve-submission/${sub.id}`,
+                  {
+                    method: "POST",
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                    },
+                  }
+                );
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || "Approval failed");
+
+                alert("✅ Block approved.");
+                div.remove(); // Remove from UI
+              } catch (err) {
+                alert(`❌ ${err.message}`);
+              }
+            };
+
+            list.appendChild(div);
+          });
+        } catch (err) {
+          alert(`❌ ${err.message}`);
+          console.error(err);
+        }
+      }
+
+      // Only fetch if user is a Minar (you may need to store role in localStorage on login)
+      if (localStorage.getItem("role") === "miner") {
+        fetchSubmissions();
+      }
+
       fetchMyLands();
       fetchBuyRequests();
     </script>

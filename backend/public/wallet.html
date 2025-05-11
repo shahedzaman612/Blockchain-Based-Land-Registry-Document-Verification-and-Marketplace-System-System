@@ -36,6 +36,17 @@
         color: #2980b9;
         text-decoration: none;
       }
+      button {
+        padding: 5px 10px;
+        background-color: #27ae60;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #219150;
+      }
     </style>
   </head>
   <body>
@@ -53,11 +64,12 @@
           <th>To</th>
           <th>Amount</th>
           <th>Timestamp</th>
+          <th>Receipt</th>
         </tr>
       </thead>
       <tbody id="transactions">
         <tr>
-          <td colspan="4">Loading transactions...</td>
+          <td colspan="5">Loading transactions...</td>
         </tr>
       </tbody>
     </table>
@@ -84,9 +96,9 @@
           }
 
           document.getElementById("walletInfo").innerHTML = `
-          <p><strong>NID:</strong> ${data.nid}</p>
-          <p><strong>Balance:</strong> ${data.balance} coins</p>
-        `;
+            <p><strong>NID:</strong> ${data.nid}</p>
+            <p><strong>Balance:</strong> ${data.balance} coins</p>
+          `;
 
           const tbody = document.getElementById("transactions");
           tbody.innerHTML = ""; // Clear initial row
@@ -95,23 +107,53 @@
             data.transactions.forEach((tx) => {
               const row = document.createElement("tr");
               row.innerHTML = `
-              <td>${tx.fromNID}</td>
-              <td>${tx.toNID}</td>
-              <td>${tx.amount}</td>
-              <td>${new Date(tx.timestamp).toLocaleString()}</td>
-            `;
+      <td>${tx.fromUser} (${tx.fromNID})</td>
+      <td>${tx.toUser} (${tx.toNID})</td>
+      <td>${tx.amount}</td>
+      <td>
+        ${new Date(tx.timestamp).toLocaleString()}<br/>
+      </td>
+      <td>  <button onclick="downloadReceipt(${
+        tx.id
+      })">🧾 Download Receipt</button> </td>
+
+    `;
               tbody.appendChild(row);
             });
           } else {
             tbody.innerHTML =
-              "<tr><td colspan='4'>No transactions found.</td></tr>";
+              "<tr><td colspan='5'>No transactions found.</td></tr>";
           }
         } catch (err) {
           console.error("Wallet load failed:", err);
           document.getElementById("walletInfo").innerHTML =
             "<p style='color:red;'>Error loading wallet</p>";
           document.getElementById("transactions").innerHTML =
-            "<tr><td colspan='4'>Error fetching data</td></tr>";
+            "<tr><td colspan='5'>Error fetching data</td></tr>";
+        }
+      }
+
+      async function downloadReceipt(id) {
+        try {
+          const res = await fetch(`http://localhost:3000/receipt/${id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (!res.ok) {
+            throw new Error("Failed to download receipt");
+          }
+
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `receipt-${id}.txt`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        } catch (err) {
+          alert("Error downloading receipt: " + err.message);
         }
       }
 
