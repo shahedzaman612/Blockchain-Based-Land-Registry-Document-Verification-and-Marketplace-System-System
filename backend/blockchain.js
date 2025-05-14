@@ -98,5 +98,6 @@ module.exports = {
   createBlock,
   saveBlock,
   hashDocument,
+  calculateHash,
   verifyDocument,
 };

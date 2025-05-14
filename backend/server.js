@@ -9,7 +9,12 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const users = JSON.parse(fs.readFileSync("users.json"));
 
-const { createBlock, verifyDocument, hashDocument } = require("./blockchain");
+const {
+  createBlock,
+  calculateHash,
+  verifyDocument,
+  hashDocument,
+} = require("./blockchain");
 
 const app = express();
 const server = http.createServer(app);
@@ -359,11 +364,11 @@ const crypto = require("crypto");
 app.post(
   "/create-block",
   authenticateJWT,
-  authorizeRole("minar"),
+  authorizeRole("admin"),
   upload.fields([{ name: "dcr" }, { name: "porcha" }, { name: "dolil" }]),
   (req, res) => {
     try {
-      const { fromAddress, toAddress, fromNID, toNID, nonce, zone } = req.body;
+      const { fromAddress, toAddress, fromNID, toNID, zone } = req.body;
 
       if (
         !req.files?.dcr?.[0] ||
@@ -387,6 +392,11 @@ app.post(
         .update(Date.now() + Math.random().toString())
         .digest("hex")
         .substring(0, 12); // shorten for readability
+      const nonce = crypto
+        .createHash("sha256")
+        .update(Date.now() + Math.random().toString())
+        .digest("int")
+        .substring(0, 3);
 
       const block = createBlock({
         transactionId,
@@ -745,10 +755,10 @@ app.post(
   (req, res) => {
     try {
       // Extract data
-      const { fromAddress, toAddress, fromNID, toNID, nonce, zone } = req.body;
+      const { fromAddress, toAddress, fromNID, toNID, zone } = req.body;
 
       // Validate required fields
-      if (!fromAddress || !toAddress || !fromNID || !toNID || !nonce || !zone) {
+      if (!fromAddress || !toAddress || !fromNID || !toNID || !zone) {
         return res
           .status(400)
           .json({ message: "All fields including zone are required." });
@@ -770,7 +780,6 @@ app.post(
         fromNID,
         to: toAddress,
         toNID,
-        nonce,
         zone,
         docs: {
           dcr: req.files["dcr"][0].path,
@@ -865,7 +874,15 @@ app.get(
     }
   }
 );
-
+function writeJSON(filePath, data) {
+  try {
+    const jsonData = JSON.stringify(data, null, 2); // Pretty format
+    fs.writeFileSync(path.resolve(filePath), jsonData, "utf8");
+    console.log(`✅ Successfully written to ${filePath}`);
+  } catch (error) {
+    console.error(`❌ Failed to write to ${filePath}:`, error);
+  }
+}
 app.post("/approve-submission/:id", authenticateJWT, (req, res) => {
   const submissionId = req.params.id;
   const user = req.user;
@@ -874,7 +891,7 @@ app.post("/approve-submission/:id", authenticateJWT, (req, res) => {
     return res.status(403).json({ message: "Only Minars can approve blocks" });
   }
 
-  const submissions = readJSON("submissions.json");
+  const submissions = loadJSON("submissions.json");
   const submissionIndex = submissions.findIndex((s) => s.id === submissionId);
 
   if (submissionIndex === -1) {
@@ -882,22 +899,17 @@ app.post("/approve-submission/:id", authenticateJWT, (req, res) => {
   }
 
   const submission = submissions[submissionIndex];
-
-  const users = readJSON("users.json");
-  const currentUser = users.find((u) => u.nid === user.nid);
-  const zoneMinars = readJSON("zoneMinars.json");
-
-  const electedMinarNID = zoneMinars[submission.zone];
-  if (electedMinarNID !== currentUser.nid) {
-    return res.status(403).json({
-      message: "⛔ You are not the elected Minar for this zone.",
-    });
+  const zoneMinars = JSON.parse(fs.readFileSync("zoneMinars.json"));
+  if (zoneMinars[submission.zone] !== req.user.nid) {
+    return res
+      .status(403)
+      .json({ message: "You are not the elected Minar for this zone." });
   }
 
-  const transfers = readJSON("transfers.json");
+  const transfers = loadJSON("transfers.json");
   const relevantTransfers = transfers
     .filter(
-      (t) => t.fromNID === submission.fromNID && t.toNID === submission.toNID
+      (t) => t.fromNID === submission.toNID && t.toNID === submission.fromNID
     )
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
@@ -909,27 +921,29 @@ app.post("/approve-submission/:id", authenticateJWT, (req, res) => {
     });
   }
 
-  const blocks = readBlockchain();
-  const lastBlock = blocks[blocks.length - 1];
+  // Auto-generate a unique transaction ID
+  const transactionId = crypto
+    .createHash("sha256")
+    .update(Date.now() + Math.random().toString())
+    .digest("hex")
+    .substring(0, 12); // shorten for readability
 
-  const newBlock = {
-    blockNumber: blocks.length + 1,
-    transactionId: submission.transactionId,
+  const nonce = crypto
+    .createHash("sha256")
+    .update(Date.now() + Math.random().toString())
+    .digest("hex")
+    .substring(0, 3);
+
+  createBlock({
+    transactionId: transactionId,
     from: submission.from,
     fromNID: submission.fromNID,
     to: submission.to,
     toNID: submission.toNID,
-    land: submission.land,
+    nonce: nonce,
     zone: submission.zone,
-    timestamp: new Date().toISOString(),
-    previousHash: lastBlock.hash,
-    nonce: submission.nonce,
-    hash: calculateHash(submission),
-    documents: submission.documents,
-  };
-
-  blocks.push(newBlock);
-  writeBlockchain(blocks);
+    docs: submission.docs,
+  });
 
   submissions.splice(submissionIndex, 1);
   writeJSON("submissions.json", submissions);

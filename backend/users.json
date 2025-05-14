@@ -4,7 +4,7 @@
     "nid": "123456789",
     "password": "$2b$10$aUIhwe0Y9pgjcp7jnVCCPevAI475CA4twWEHVK2oRAXy5OL2b6pvC",
     "role": "admin",
-    "wallet": 10500,
+    "wallet": 11500,
     "zone": "Zone A"
   },
   {
@@ -28,7 +28,7 @@
     "nid": "987654321",
     "password": "$2b$10$YqxOPbSttI6sRmWURwkbMO0LYkC.MfaCsBOBrqThFNvEwpFkLKX2G",
     "role": "miner",
-    "wallet": 9650,
+    "wallet": 11650,
     "zone": "Zone A"
   },
   {
@@ -46,5 +46,13 @@
     "role": "user",
     "zone": "Zone A",
     "wallet": 10000
+  },
+  {
+    "username": "Papry Bhuiyan",
+    "nid": "87654321",
+    "password": "$2b$10$KyVs37bzvNOOKAk6Erp6leVF8Q.wduE0uaYdiPPS60AEczZG.lXgS",
+    "role": "user",
+    "zone": "Zone A",
+    "wallet": 7000
   }
 ]

@@ -151,7 +151,6 @@
               <h3>Submission ID: ${s.id}</h3>
               <p><strong>From:</strong> ${s.from} (${s.fromNID})</p>
               <p><strong>To:</strong> ${s.to} (${s.toNID})</p>
-              <p><strong>Nonce:</strong> ${s.nonce}</p>
               <p><strong>Submitted By:</strong> ${s.submittedBy}</p>
 
               <div class="docs">
@@ -259,15 +258,22 @@
             `http://localhost:3000/approve-submission/${id}`,
             {
               method: "POST",
-              headers: { Authorization: `Bearer ${token}` },
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              // Replace {} with the actual data required by the server
+              body: JSON.stringify({
+                id: id,
+              }),
             }
           );
 
           const data = await res.json();
+          // Check for successful response status explicitly
+
           if (res.ok) {
-            alert(
-              `✅ Block mined successfully!\n💰 Coins transferred.\n🧾 Transfer ID: ${data.includedTransfer.transferId}`
-            );
+            alert(`✅ Block mined successfully!`);
             loadSubmissions();
             loadTransactions();
           } else {
