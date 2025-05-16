@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 3000
 
 # 6. Start the Node.js server
-CMD ["node", "server.js"]
+CMD ["node", "backend/server.js"]
