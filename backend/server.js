@@ -24,8 +24,8 @@ const io = socketIo(server, {
     methods: ["GET", "POST"],
   },
 });
-const PORT = 3000;
-const SECRET_KEY = "your_secret_key";
+const PORT = process.env.PORT || 3000;
+const SECRET_KEY = "e6787cd0419ea70d7296631638e7cf087ae5ef89f875b6685586cbc7424df552c47963143735e9e46d3e598b9819a955b524304956d6c356de9119f140837c06";
 
 // Middleware
 app.use(cors({ origin: "*" }));
