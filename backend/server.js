@@ -25,7 +25,6 @@ const io = socketIo(server, {
   },
 });
 const PORT = process.env.PORT || 3000;
-const SECRET_KEY = "e6787cd0419ea70d7296631638e7cf087ae5ef89f875b6685586cbc7424df552c47963143735e9e46d3e598b9819a955b524304956d6c356de9119f140837c06";
 
 // Middleware
 app.use(cors({ origin: "*" }));
@@ -50,7 +49,7 @@ function authenticateJWT(req, res, next) {
   const authHeader = req.headers.authorization;
   if (authHeader) {
     const token = authHeader.split(" ")[1];
-    jwt.verify(token, SECRET_KEY, (err, user) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
       if (err) return res.sendStatus(403);
       req.user = user;
       next();
@@ -59,6 +58,7 @@ function authenticateJWT(req, res, next) {
     res.sendStatus(401);
   }
 }
+
 function authorizeRole(...allowedRoles) {
   return (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
