@@ -7,6 +7,7 @@ const path = require("path");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+require("dotenv").config();
 const users = JSON.parse(fs.readFileSync("users.json"));
 
 const {
@@ -284,7 +285,7 @@ io.on("connection", (socket) => {
 
 // Serve Home Page
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
 //--- Register Route ---
@@ -341,7 +342,7 @@ app.post("/login", async (req, res) => {
         username: user.username,
         role: user.role,
       },
-      SECRET_KEY,
+      JWT_SECRET,
       { expiresIn: "2h" }
     );
 
