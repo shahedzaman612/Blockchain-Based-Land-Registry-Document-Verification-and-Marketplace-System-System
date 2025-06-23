@@ -6,7 +6,7 @@
     <title>Blockchain Land Registry System</title>
     <link rel="stylesheet" href="style.css" />
 
-    <!-- Particles.js CDN -->
+    
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
     <script>
       const toke = localStorage.getItem("token");
@@ -53,12 +53,10 @@
       </div>
     </div>
 
-    <!-- Logout Button -->
     <button class="logout-button" id="logoutButton">Logout</button>
 
-    <!-- Scripts -->
+ 
     <script>
-      // Load particles.js
       particlesJS("particles-js", {
         particles: {
           number: { value: 80, density: { enable: true, value_area: 800 } },
@@ -82,13 +80,13 @@
         },
       });
 
-      // Token and User Info
+      
       const token = localStorage.getItem("token");
       if (!token) {
-        window.location.href = "login.html"; // If not logged in, redirect
+        window.location.href = "login.html"; 
       }
 
-      // Decode JWT
+      
       function parseJwt(token) {
         const base64Url = token.split(".")[1];
         const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
